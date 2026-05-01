@@ -1,0 +1,62 @@
+# macOS
+.DS_Store
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Python (engine)
+engine/.venv/
+engine/venv/
+engine/__pycache__/
+engine/**/*.py[cod]
+engine/**/*$py.class
+engine/.pytest_cache/
+engine/.mypy_cache/
+engine/.ruff_cache/
+engine/.hypothesis/
+engine/.pyre/
+engine/build/
+engine/dist/
+engine/*.egg-info/
+engine/.eggs/
+engine/.env
+engine/.env.*
+engine/.python-version
+
+# Engine outputs
+engine/artifacts/*
+!engine/artifacts/.gitkeep
+engine/src/model/artifacts/
+engine/agents/
+engine/data/*
+!engine/data/.gitkeep
+engine/data_processed/*
+!engine/data_processed/.gitkeep
+
+# Node (frontend)
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
+
+# Editor (frontend)
+frontend/.vscode/*
+!frontend/.vscode/extensions.json
+frontend/.idea
+frontend/*.suo
+frontend/*.ntvs*
+frontend/*.njsproj
+frontend/*.sln
+frontend/*.sw?
+
+# Frontend env
+frontend/.env
+frontend/.env.*
+
+# Frontend agents
+frontend/AGENTS.md

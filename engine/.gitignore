@@ -28,9 +28,11 @@ dist/
 .env.*
 .python-version
 
-# Local data outputs
-data/
-data_processed/
+# Local data outputs (keep dirs, ignore contents)
+data/*
+!data/.gitkeep
+data_processed/*
+!data_processed/.gitkeep
 
 # Model artifacts
 artifacts/*
