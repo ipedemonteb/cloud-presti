@@ -43,39 +43,6 @@ resource "aws_s3_bucket_website_configuration" "frontend" {
   }
 }
 
-locals {
-  mime_types = {
-    "html"  = "text/html"
-    "css"   = "text/css"
-    "js"    = "application/javascript"
-    "json"  = "application/json"
-    "png"   = "image/png"
-    "jpg"   = "image/jpeg"
-    "jpeg"  = "image/jpeg"
-    "gif"   = "image/gif"
-    "svg"   = "image/svg+xml"
-    "ico"   = "image/x-icon"
-    "txt"   = "text/plain"
-    "woff"  = "font/woff"
-    "woff2" = "font/woff2"
-  }
-}
-
-resource "aws_s3_object" "frontend_files" {
-  for_each = fileset("${path.module}/../frontend/dist", "**")
-
-  bucket       = aws_s3_bucket.frontend.bucket
-  key          = each.value
-  source       = "${path.module}/../frontend/dist/${each.value}"
-  etag         = filemd5("${path.module}/../frontend/dist/${each.value}")
-  content_type = lookup(local.mime_types, reverse(split(".", each.value))[0], "application/octet-stream")
-  acl          = "public-read"
-
-  depends_on = [
-    aws_s3_bucket_public_access_block.frontend,
-    aws_s3_bucket_website_configuration.frontend,
-  ]
-}
 
 output "bucket_name" {
   description = "Nombre del bucket S3"

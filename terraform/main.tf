@@ -115,11 +115,3 @@ output "auth_api_gateway_endpoint" {
   value = module.auth.api_gateway_endpoint
 }
 
-resource "local_file" "frontend_env" {
-  filename = "${path.root}/../frontend/.env.local"
-  content  = <<-EOT
-    VITE_COGNITO_DOMAIN=https://${module.auth.cognito_domain}.auth.us-east-1.amazoncognito.com
-    VITE_COGNITO_CLIENT_ID=${module.auth.client_id}
-    VITE_API_GATEWAY_CALLBACK_URL=${module.auth.api_gateway_endpoint}/callback
-  EOT
-}
