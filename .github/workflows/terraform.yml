@@ -1,16 +1,7 @@
 name: Terraform
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "terraform/**"
-      - "frontend/**"
-  pull_request:
-    branches: [main]
-    paths:
-      - "terraform/**"
-      - "frontend/**"
+  workflow_dispatch:
 
 jobs:
   terraform:
@@ -70,5 +61,5 @@ jobs:
         run: terraform plan -no-color -out=tfplan
 
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/main'
         run: terraform apply -auto-approve -no-color tfplan
