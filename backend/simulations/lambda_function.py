@@ -9,7 +9,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import joblib
-from tensorflow.keras.models import load_model
+import tflite_runtime.interpreter as tflite
 
 from src.preprocessing.load_data import features_desde_api
 from src.model.predict import (
@@ -22,21 +22,22 @@ from src.model.predict import (
 dynamodb = boto3.resource('dynamodb', region_name=os.getenv('AWS_REGION', 'us-east-1'))
 TABLE_NAME = os.getenv('DYNAMODB_TABLE_NAME', 'Simulations')
 
-_MODEL = None
+_INTERPRETER = None
 _SCALER = None
 _FEATURE_COLUMNS = None
 _FILL_VALUES = None
 
 def cargar_artefactos():
-    global _MODEL, _SCALER, _FEATURE_COLUMNS, _FILL_VALUES
-    if _MODEL is not None:
+    global _INTERPRETER, _SCALER, _FEATURE_COLUMNS, _FILL_VALUES
+    if _INTERPRETER is not None:
         return
         
     print("Cargando artefactos en memoria (Cold Start)...")
     artifacts_dir = Path(__file__).resolve().parent / "artifacts"
     
     _SCALER = joblib.load(artifacts_dir / "scaler.joblib")
-    _MODEL = load_model(artifacts_dir / "modelo_crediticio.keras")
+    _INTERPRETER = tflite.Interpreter(model_path=str(artifacts_dir / "modelo_crediticio.tflite"))
+    _INTERPRETER.allocate_tensors()
     _FEATURE_COLUMNS = _read_feature_columns(artifacts_dir / "feature_columns.json")
     _FILL_VALUES = _read_fill_values(artifacts_dir / "feature_fill_values.json")
     print("Artefactos cargados.")
@@ -70,7 +71,13 @@ def predecir_score(features_dict: dict) -> float:
     X = X.fillna(0.0)
     
     X_scaled = _SCALER.transform(X)
-    preds = _MODEL.predict(X_scaled, verbose=0).reshape(-1)
+    
+    input_details = _INTERPRETER.get_input_details()
+    output_details = _INTERPRETER.get_output_details()
+    
+    _INTERPRETER.set_tensor(input_details[0]['index'], X_scaled.astype(np.float32))
+    _INTERPRETER.invoke()
+    preds = _INTERPRETER.get_tensor(output_details[0]['index']).reshape(-1)
     
     return float(preds[0])
 

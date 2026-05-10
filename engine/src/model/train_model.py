@@ -421,6 +421,14 @@ def main() -> None:
     _ensure_parent_dir(model_output)
     model.save(model_output)
 
+    import tensorflow as tf
+    tflite_output = model_output.with_suffix(".tflite")
+    converter = tf.lite.TFLiteConverter.from_keras_model(model)
+    tflite_model = converter.convert()
+    with tflite_output.open("wb") as f:
+        f.write(tflite_model)
+    print(f"Modelo TFLite guardado en: {tflite_output}")
+
     _ensure_parent_dir(scaler_output)
     joblib.dump(scaler, scaler_output)
 

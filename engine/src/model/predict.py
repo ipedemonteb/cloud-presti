@@ -19,7 +19,10 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-from tensorflow.keras.models import load_model
+try:
+    import tflite_runtime.interpreter as tflite
+except ImportError:
+    import tensorflow.lite as tflite
 
 
 ID_COLUMN = "nro_id"
@@ -34,8 +37,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input", required=True, help="CSV de entrada")
     parser.add_argument(
         "--model",
-        default=str(default_artifacts_dir / "modelo_crediticio.keras"),
-        help="Ruta del modelo Keras",
+        default=str(default_artifacts_dir / "modelo_crediticio.tflite"),
+        help="Ruta del modelo TFLite",
     )
     parser.add_argument(
         "--scaler",
@@ -142,11 +145,21 @@ def main() -> None:
     X = X.fillna(0.0)
 
     scaler = joblib.load(scaler_path)
-    model = load_model(model_path)
-
+    
+    interpreter = tflite.Interpreter(model_path=str(model_path))
+    input_details = interpreter.get_input_details()
+    
     X_scaled = scaler.transform(X)
     _assert_finite("X_scaled", X_scaled)
-    preds = model.predict(X_scaled, verbose=0).reshape(-1)
+    
+    interpreter.resize_tensor_input(input_details[0]['index'], X_scaled.shape)
+    interpreter.allocate_tensors()
+    output_details = interpreter.get_output_details()
+    
+    interpreter.set_tensor(input_details[0]['index'], X_scaled.astype(np.float32))
+    interpreter.invoke()
+    preds = interpreter.get_tensor(output_details[0]['index']).reshape(-1)
+    
     _assert_finite("preds", preds)
 
     out = pd.DataFrame({"score_crediticio_pred": preds})
