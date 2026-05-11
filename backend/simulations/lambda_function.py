@@ -8,17 +8,13 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import joblib
-import tflite_runtime.interpreter as tflite
 import boto3
 import datetime
 
-from engine.src.preprocessing.load_data import features_desde_api
-from engine.src.model.predict import (
-    FEATURE_COLUMNS, 
-    _read_feature_columns, 
-    _read_fill_values, 
-    _build_features
-)
+try:
+    import tflite_runtime.interpreter as tflite
+except ImportError:
+    import tensorflow.lite as tflite
 
 _INTERPRETER = None
 _SCALER = None
@@ -27,6 +23,148 @@ _FILL_VALUES = None
 
 dynamodb = boto3.client('dynamodb')
 DYNAMODB_TABLE = os.environ.get('DYNAMODB_TABLE_NAME')
+
+def _parse_monto_24dsf(valor: str) -> float:
+    try:
+        return float(str(valor).strip().replace(',', '.').replace(' ', ''))
+    except (ValueError, TypeError):
+        return 0.0
+
+def _parse_situacion_24dsf(valor: str) -> int | None:
+    sit = pd.to_numeric(valor, errors='coerce')
+    if pd.isna(sit):
+        return None
+    sit = int(sit)
+    return sit if 1 <= sit <= 5 else None
+
+def features_desde_api(response_json: dict) -> dict | None:
+    periodos = response_json.get('periodos', [])
+    if len(periodos) < 7:
+        return None
+
+    meses = []
+    for p in periodos:
+        entidades = p.get('entidades', [])
+        if not entidades:
+            continue
+
+        situaciones = [
+            _parse_situacion_24dsf(e.get('situacion'))
+            for e in entidades
+        ]
+        situaciones_validas = [s for s in situaciones if s is not None]
+        if not situaciones_validas:
+            continue
+
+        meses.append({
+            'periodo': p.get('periodo'),
+            'situacion_max': max(situaciones_validas),
+            'monto_total': sum(_parse_monto_24dsf(e.get('monto', 0)) for e in entidades),
+            'dias_atraso_max': max(int(e.get('diasAtrasoPago') or 0) for e in entidades),
+            'refinanciado': any(e.get('refinanciaciones') for e in entidades),
+            'proceso_judicial': any(e.get('procesoJud') for e in entidades),
+            'recategorizado': any(e.get('recategorizacionOblig') for e in entidades),
+            'irrecuperable': any(e.get('irrecDisposicionTecnica') for e in entidades),
+            'cant_entidades': len(entidades),
+        })
+
+    if len(meses) < 7:
+        return None
+
+    mes_actual = meses[0]
+    hist = meses[6:]
+
+    features = {
+        'situacion': mes_actual['situacion_max'],
+        'prestamos_total': mes_actual['monto_total'],
+        'dias_atraso_max': mes_actual['dias_atraso_max'],
+        'tiene_garantia_a': 0,
+        'ratio_cobertura': 0.0,
+        'refinanciado': int(mes_actual['refinanciado']),
+        'proceso_judicial': int(mes_actual['proceso_judicial']),
+        'recategorizado': int(mes_actual['recategorizado']),
+        'irrecuperable': int(mes_actual['irrecuperable']),
+        'cant_entidades': mes_actual['cant_entidades'],
+    }
+
+    sits = [m['situacion_max'] for m in hist]
+    montos = [m['monto_total'] for m in hist]
+
+    meses_en_sit1 = sum(1 for s in sits if s == 1)
+    meses_sit_mala = sum(1 for s in sits if s >= 3)
+    peor_situacion_24m = max(sits) if sits else None
+    if len(sits) >= 4:
+        bloque = sits[3:12]
+        tendencia = round((sum(sits[:3]) / 3) - (sum(bloque) / len(bloque)), 3)
+    else:
+        tendencia = 0.0
+
+    racha = 0
+    for s in sits:
+        if s == 1:
+            racha += 1
+        else:
+            break
+
+    monto_actual_hist = montos[0] if len(montos) >= 1 else 0
+    monto_hace_12 = montos[11] if len(montos) >= 12 else (montos[-1] if montos else 0)
+    variacion_monto_12m = (
+        round((monto_actual_hist - monto_hace_12) / monto_hace_12, 3)
+        if monto_hace_12 > 0
+        else 0.0
+    )
+
+    monto_promedio_24m = round(sum(montos) / len(montos), 1) if montos else 0.0
+    monto_max_24m = max(montos) if montos else 0.0
+    meses_con_deuda = sum(1 for m in montos if m > 0)
+
+    features.update({
+        'meses_en_sit1': meses_en_sit1,
+        'meses_sit_mala': meses_sit_mala,
+        'peor_situacion_24m': peor_situacion_24m,
+        'tendencia_situacion': tendencia,
+        'racha_sit1_actual': racha,
+        'variacion_monto_12m': variacion_monto_12m,
+        'monto_promedio_24m': monto_promedio_24m,
+        'monto_max_24m': monto_max_24m,
+        'meses_con_deuda': meses_con_deuda,
+        'actividad': 'desconocido',
+    })
+
+    return features
+
+def _read_feature_columns(path: Path) -> list[str]:
+    with path.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+    return data
+
+def _read_fill_values(path: Path) -> dict[str, float]:
+    if not path.exists():
+        return {}
+    with path.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+    out: dict[str, float] = {}
+    for k, v in data.items():
+        out[k] = float(v)
+    return out
+
+def _build_features(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series | None]:
+    ID_COLUMN = "nro_id"
+    TARGET_COLUMN = "score_crediticio"
+    CATEGORICAL_COLUMNS = ["actividad"]
+    
+    ids = df[ID_COLUMN] if ID_COLUMN in df.columns else None
+
+    X = df.copy()
+    for col in [ID_COLUMN, TARGET_COLUMN]:
+        if col in X.columns:
+            X = X.drop(columns=[col])
+
+    if "actividad" not in X.columns:
+        X["actividad"] = "desconocido"
+
+    X = pd.get_dummies(X, columns=CATEGORICAL_COLUMNS)
+    return X, ids
 
 def update_simulation_status(fintech_id: str, timestamp: str, task_id: str, status: str, score: float = None, error: str = None):
     if not DYNAMODB_TABLE:
@@ -96,7 +234,7 @@ def predecir_score(features_dict: dict) -> float:
     if 'nro_id' not in features_dict:
         features_dict['nro_id'] = "temp_id"
         
-    df = pd.DataFrame([features_dict], columns=["nro_id"] + FEATURE_COLUMNS)
+    df = pd.DataFrame([features_dict])
     
     X, _ = _build_features(df)
     X = X.reindex(columns=_FEATURE_COLUMNS, fill_value=0)
