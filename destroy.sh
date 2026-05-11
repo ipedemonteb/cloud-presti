@@ -4,9 +4,13 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TF_DIR="${SCRIPT_DIR}/terraform"
 
-export TF_STATE_BUCKET=cloud-presti-tf-state
-export TF_LOCK_TABLE=cloud-presti-tf-lock
-export TF_FRONTEND_BUCKET_NAME=cloud-presti-test-tf-frontend-bucket
+if [ -z "$TF_STATE_BUCKET" ] || [ -z "$TF_LOCK_TABLE" ] || [ -z "$TF_FRONTEND_BUCKET_NAME" ]; then
+  echo "Faltan variables de entorno:"
+  echo "  export TF_STATE_BUCKET=<nombre-del-bucket>"
+  echo "  export TF_LOCK_TABLE=<nombre-de-la-tabla>"
+  echo "  export TF_FRONTEND_BUCKET_NAME=<nombre-del-bucket-frontend>"
+  exit 1
+fi
 
 read -p "Escribí 'destroy' para confirmar: " CONFIRM
 if [ "$CONFIRM" != "destroy" ]; then
