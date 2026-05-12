@@ -5,11 +5,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TF_DIR="${SCRIPT_DIR}/terraform"
 
 # --- Argumentos del backend ---
-if [ -z "$TF_STATE_BUCKET" ] || [ -z "$TF_LOCK_TABLE" ] || [ -z "$TF_FRONTEND_BUCKET_NAME" ]; then
+if [ -z "$TF_STATE_BUCKET" ] || [ -z "$TF_LOCK_TABLE" ]; then
   echo "Faltan variables de entorno:"
   echo "  export TF_STATE_BUCKET=<nombre-del-bucket>"
   echo "  export TF_LOCK_TABLE=<nombre-de-la-tabla>"
-  echo "  export TF_FRONTEND_BUCKET_NAME=<nombre-del-bucket-frontend>"
   exit 1
 fi
 
@@ -32,7 +31,7 @@ cd "${TF_DIR}"
 terraform init -reconfigure "${TF_INIT_ARGS[@]}"
 
 echo "==> Terraform apply"
-terraform apply -auto-approve -var="bucket_name=${TF_FRONTEND_BUCKET_NAME}"
+terraform apply -auto-approve
 
 # --- Leer outputs de Terraform ---
 COGNITO_DOMAIN=$(terraform output -raw auth_cognito_domain)
