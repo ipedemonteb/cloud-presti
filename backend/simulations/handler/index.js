@@ -1,15 +1,20 @@
 const { SQSClient, SendMessageCommand } = require('@aws-sdk/client-sqs');
+const { DynamoDBClient, PutItemCommand } = require('@aws-sdk/client-dynamodb');
 const { v4: uuidv4 } = require('uuid');
 
 const sqsClient = new SQSClient({});
+const dynamoClient = new DynamoDBClient({});
 
 const QUEUE_URL = process.env.SQS_QUEUE_URL;
+const DYNAMODB_TABLE = process.env.DYNAMODB_TABLE_NAME;
 
 exports.handler = async (event) => {
     try {
         console.log("Evento recibido:", JSON.stringify(event));
 
-        const { httpMethod, body } = event;
+        // En API Gateway v2, el método está en requestContext.http.method
+        const httpMethod = event.requestContext?.http?.method || event.httpMethod;
+        const body = event.body;
 
         const headers = {
             "Access-Control-Allow-Origin": "*",
@@ -33,10 +38,14 @@ exports.handler = async (event) => {
                 return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON in request body" }) };
             }
             const cuit = parsedBody.cuit;
-            const fintechId = parsedBody.fintech_id || "default_fintech"; // Para probar desde Postman
+            const fintechId = parsedBody.fintech_id;
 
-            if (!cuit) {
-                return { statusCode: 400, headers, body: JSON.stringify({ error: "Missing 'cuit' in request body" }) };
+            if (!cuit || !fintechId) {
+                return { 
+                    statusCode: 400, 
+                    headers, 
+                    body: JSON.stringify({ error: "Missing 'cuit' or 'fintech_id' in request body" }) 
+                };
             }
 
             const taskId = uuidv4();
@@ -104,7 +113,11 @@ exports.handler = async (event) => {
         return {
             statusCode: 500,
             headers: { "Access-Control-Allow-Origin": "*" },
-            body: JSON.stringify({ error: "Error interno del servidor" })
+            body: JSON.stringify({ 
+                error: "Error interno del servidor",
+                message: error.message,
+                stack: error.stack
+            })
         };
     }
 };

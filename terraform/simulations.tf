@@ -28,6 +28,12 @@ data "archive_file" "simulations_handler_zip" {
   output_path = "${path.root}/.terraform/archives/simulations_handler.zip"
 }
 
+data "archive_file" "simulations_results_zip" {
+  type        = "zip"
+  source_dir  = "${path.root}/../backend/simulations/results"
+  output_path = "${path.root}/.terraform/archives/simulations_results.zip"
+}
+
 resource "aws_lambda_function" "simulations_handler" {
   function_name    = "cloud-presti-simulations-handler"
   role             = data.aws_iam_role.lab_role.arn
@@ -44,11 +50,26 @@ resource "aws_lambda_function" "simulations_handler" {
   }
 }
 
+resource "aws_lambda_function" "simulations_results" {
+  function_name    = "cloud-presti-simulations-results"
+  role             = data.aws_iam_role.lab_role.arn
+  handler          = "index.handler"
+  runtime          = "nodejs20.x"
+  filename         = data.archive_file.simulations_results_zip.output_path
+  source_code_hash = data.archive_file.simulations_results_zip.output_base64sha256
+
+  environment {
+    variables = {
+      DYNAMODB_TABLE_NAME = aws_dynamodb_table.simulations.name
+    }
+  }
+}
+
 resource "aws_lambda_function" "simulations_engine" {
   function_name    = "cloud-presti-simulations-engine"
   role             = data.aws_iam_role.lab_role.arn
   handler          = "lambda_function.lambda_handler"
-  runtime          = "python3.11"
+  runtime          = "python3.12"
   filename         = "${path.root}/../simulations_engine.zip"
   source_code_hash = fileexists("${path.root}/../simulations_engine.zip") ? filebase64sha256("${path.root}/../simulations_engine.zip") : null
   timeout          = 60
@@ -94,16 +115,40 @@ resource "aws_apigatewayv2_integration" "handler_integration" {
   payload_format_version = "2.0"
 }
 
+resource "aws_apigatewayv2_integration" "results_integration" {
+  api_id           = aws_apigatewayv2_api.simulations_api.id
+  integration_type = "AWS_PROXY"
+
+  connection_type        = "INTERNET"
+  integration_method     = "POST"
+  integration_uri        = aws_lambda_function.simulations_results.invoke_arn
+  payload_format_version = "2.0"
+}
+
 resource "aws_apigatewayv2_route" "post_simulations" {
   api_id    = aws_apigatewayv2_api.simulations_api.id
   route_key = "POST /simulations"
   target    = "integrations/${aws_apigatewayv2_integration.handler_integration.id}"
 }
 
+resource "aws_apigatewayv2_route" "get_simulations" {
+  api_id    = aws_apigatewayv2_api.simulations_api.id
+  route_key = "GET /simulations"
+  target    = "integrations/${aws_apigatewayv2_integration.results_integration.id}"
+}
+
 resource "aws_lambda_permission" "api_gw_handler" {
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.simulations_handler.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.simulations_api.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "api_gw_results" {
+  statement_id  = "AllowExecutionFromAPIGatewayResults"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.simulations_results.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.simulations_api.execution_arn}/*/*"
 }

@@ -1,1 +1,3 @@
-tflite-runtime==2.14.0
+ai-edge-litert
+numpy<2.0.0
+requests

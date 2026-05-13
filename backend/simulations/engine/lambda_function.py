@@ -6,11 +6,18 @@ from decimal import Decimal
 from pathlib import Path
 import datetime
 import boto3
+import numpy as np
 
+# Importar LiteRT (antes tflite-runtime) para Python 3.12+
 try:
-    import tflite_runtime.interpreter as tflite
-except ImportError:
-    import tensorflow.lite as tflite
+    from ai_edge_litert.interpreter import Interpreter as tflite_interpreter
+    print("LiteRT (ai_edge_litert) cargado exitosamente")
+except ImportError as e:
+    try:
+        import tflite_runtime.interpreter as tflite_interpreter
+        print("tflite_runtime cargado exitosamente")
+    except ImportError as e2:
+        raise ImportError(f"Error cargando TFLite/LiteRT. Intento 1 (LiteRT): {str(e)}. Intento 2 (TFLite): {str(e2)}")
 
 _INTERPRETER = None
 _SCALER_PARAMS = None
@@ -139,7 +146,7 @@ def _read_json(path: Path):
     with path.open("r", encoding="utf-8") as f:
         return json.load(f)
 
-def update_simulation_status(fintech_id: str, timestamp: str, task_id: str, status: str, score: float = None, error: str = None):
+def update_simulation_status(fintech_id: str, cuit: str, task_id: str, status: str, score: float = None, error: str = None):
     if not DYNAMODB_TABLE:
         print("DYNAMODB_TABLE_NAME no definida, omitiendo guardado.")
         return
@@ -164,7 +171,7 @@ def update_simulation_status(fintech_id: str, timestamp: str, task_id: str, stat
             TableName=DYNAMODB_TABLE,
             Key={
                 "pk": {"S": f"FINTECH#{fintech_id}"},
-                "sk": {"S": f"TASK#{timestamp}#{task_id}"}
+                "sk": {"S": f"CUIT#{cuit}#TASK#{task_id}"}
             },
             UpdateExpression=update_expression,
             ExpressionAttributeValues=expression_values,
@@ -183,21 +190,31 @@ def cargar_artefactos():
     artifacts_dir = Path(__file__).resolve().parent / "artifacts"
     
     _SCALER_PARAMS = _read_json(artifacts_dir / "scaler_params.json")
-    _INTERPRETER = tflite.Interpreter(model_path=str(artifacts_dir / "modelo_crediticio.tflite"))
+    _INTERPRETER = tflite_interpreter(model_path=str(artifacts_dir / "modelo_crediticio.tflite"))
     _INTERPRETER.allocate_tensors()
     _FEATURE_COLUMNS = _read_json(artifacts_dir / "feature_columns.json")
     _FILL_VALUES = _read_json(artifacts_dir / "feature_fill_values.json")
     print("Artefactos cargados.")
 
 def consultar_bcra(cuit: str) -> dict:
-    url = f"https://api.bcra.gob.ar/centraldedeudores/v1/Deudas/Historicas/{cuit}"
+    import requests
+    url = f"https://api.bcra.gob.ar/centraldedeudores/v1.0/Deudas/Historicas/{cuit}"
+    headers = {
+        'Cache-Control': 'no-cache',
+        'Accept': '*/*',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    }
     try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req) as response:
-            data = json.loads(response.read().decode())
-            return data.get('results', {})
-    except urllib.error.HTTPError as e:
-        raise Exception(f"Error consultando BCRA: HTTP {e.code}")
+        response = requests.get(url, headers=headers, timeout=15)
+        response.raise_for_status()
+        data = response.json()
+        return data.get('results', {})
+    except requests.exceptions.HTTPError as e:
+        if response.status_code == 404:
+            raise Exception(f"El CUIT {cuit} no posee historial en BCRA o no existe (HTTP 404).")
+        raise Exception(f"Error consultando BCRA: HTTP {response.status_code}")
     except Exception as e:
         raise Exception(f"Error de conexión con BCRA: {str(e)}")
 
@@ -234,15 +251,13 @@ def lambda_handler(event, context):
         task_id = None
         cuit = None
         fintech_id = None
-        timestamp = None
         try:
             body = json.loads(record['body'])
             task_id = body.get('task_id')
             cuit = body.get('cuit')
             fintech_id = body.get('fintech_id')
-            timestamp = body.get('timestamp')
             
-            if not task_id or not cuit or not fintech_id or not timestamp:
+            if not task_id or not cuit or not fintech_id:
                 print("Mensaje inválido, faltan campos requeridos, ignorando.")
                 continue
                 
@@ -257,48 +272,11 @@ def lambda_handler(event, context):
             score = predecir_score(features)
             print(f"Score calculado: {score}")
             
-            update_simulation_status(fintech_id, timestamp, task_id, "COMPLETED", score=score)
+            update_simulation_status(fintech_id, cuit, task_id, "COMPLETED", score=score)
             
         except Exception as e:
             print(f"Error procesando: {str(e)}")
-            if task_id and fintech_id and timestamp:
-                update_simulation_status(fintech_id, timestamp, task_id, "FAILED", error=str(e))
-            
-    return {"statusCode": 200, "body": "OK"}
-
-def lambda_handler(event, context):
-    for record in event.get('Records', []):
-        task_id = None
-        cuit = None
-        fintech_id = None
-        timestamp = None
-        try:
-            body = json.loads(record['body'])
-            task_id = body.get('task_id')
-            cuit = body.get('cuit')
-            fintech_id = body.get('fintech_id')
-            timestamp = body.get('timestamp')
-            
-            if not task_id or not cuit or not fintech_id or not timestamp:
-                print("Mensaje inválido, faltan campos requeridos, ignorando.")
-                continue
-                
-            print(f"Procesando Task: {task_id} - CUIT: {cuit} - Fintech: {fintech_id}")
-            
-            bcra_data = consultar_bcra(cuit)
-            
-            features = features_desde_api(bcra_data)
-            if features is None:
-                raise ValueError("No hay suficientes periodos en BCRA (min 7).")
-                
-            score = predecir_score(features)
-            print(f"Score calculado: {score}")
-            
-            update_simulation_status(fintech_id, timestamp, task_id, "COMPLETED", score=score)
-            
-        except Exception as e:
-            print(f"Error procesando: {str(e)}")
-            if task_id and fintech_id and timestamp:
-                update_simulation_status(fintech_id, timestamp, task_id, "FAILED", error=str(e))
+            if task_id and fintech_id and cuit:
+                update_simulation_status(fintech_id, cuit, task_id, "FAILED", error=str(e))
             
     return {"statusCode": 200, "body": "OK"}

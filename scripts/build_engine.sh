@@ -13,15 +13,31 @@ rm -rf "${BUILD_DIR}"
 mkdir -p "${BUILD_DIR}"
 
 # 2. Instalar dependencias compiladas nativamente para Amazon Linux (manylinux)
-# Esto permite instalar binarios C (Pandas, Numpy, TFLite) en Mac y que funcionen en AWS
-echo "Instalando dependencias cross-platform (manylinux2014_x86_64)..."
+echo "Instalando LiteRT (manylinux_2_27_x86_64)..."
+python3 -m pip install \
+    --platform manylinux_2_27_x86_64 \
+    --target "${BUILD_DIR}" \
+    --implementation cp \
+    --python-version 3.12 \
+    --only-binary=:all: \
+    --upgrade \
+    ai-edge-litert
+
+echo "Instalando Numpy (manylinux2014_x86_64)..."
 python3 -m pip install \
     --platform manylinux2014_x86_64 \
     --target "${BUILD_DIR}" \
     --implementation cp \
-    --python-version 3.11 \
+    --python-version 3.12 \
     --only-binary=:all: \
-    -r backend/simulations/engine/requirements.txt
+    --upgrade \
+    "numpy<2.0.0"
+
+echo "Instalando dependencias generales..."
+python3 -m pip install \
+    --target "${BUILD_DIR}" \
+    --upgrade \
+    requests
 
 # 3. Copiar el código de la Lambda y los artefactos
 echo "Copiando código fuente y modelo..."
@@ -34,13 +50,12 @@ cp engine/artifacts/scaler_params.json "${BUILD_DIR}/artifacts/"
 cp engine/artifacts/feature_columns.json "${BUILD_DIR}/artifacts/"
 cp engine/artifacts/feature_fill_values.json "${BUILD_DIR}/artifacts/"
 
-# 4. Limpieza agresiva para reducir el tamaño del ZIP y no pasarnos de los 250MB de AWS
+# 4. Limpieza moderada para reducir el tamaño del ZIP
 echo "Limpiando archivos innecesarios para achicar el paquete..."
 find "${BUILD_DIR}" -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true
 find "${BUILD_DIR}" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-find "${BUILD_DIR}" -name "*.dist-info" -type d -exec rm -rf {} + 2>/dev/null || true
+# No eliminamos .dist-info por precaución con librerías compiladas
 # Eliminar binarios y estáticos que no se usan en ejecución
-rm -rf "${BUILD_DIR}/pandas/tests" 2>/dev/null || true
 rm -rf "${BUILD_DIR}/numpy/tests" 2>/dev/null || true
 
 # 5. Zipear todo

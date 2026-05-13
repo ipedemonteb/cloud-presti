@@ -67,3 +67,7 @@ frontend/AGENTS.md
 
 # ZIPs created
 simulations_engine.zip
+
+# Backend (Node & Python)
+backend/**/node_modules/
+backend/**/__pycache__/
