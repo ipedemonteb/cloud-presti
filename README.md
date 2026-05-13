@@ -8,7 +8,7 @@ Plataforma fintech que sugiere potenciales clientes a entidades financieras medi
 ┌─────────────────────────────────────────────────────────────┐
 │                        AWS (us-east-1)                      │
 │                                                             │
-│   S3 (frontend estático)      VPC 10.0.0.0/16              │
+│   S3 (frontend estático)      VPC 10.0.0.0/16               │
 │   ┌──────────────────┐        ┌──────────────────────────┐  │
 │   │  React + Vite    │        │  Subnets públicas (NAT)  │  │
 │   │  Dashboard SPA   │        │  Subnets privadas        │  │
