@@ -47,8 +47,9 @@ exports.handler = async (event) => {
                     await dynamoClient.send(new PutItemCommand({
                         TableName: DYNAMODB_TABLE,
                         Item: {
-                            pk: { S: `TASK#${taskId}` },
-                            sk: { S: `METADATA` },
+                            pk: { S: `FINTECH#${fintechId}` },
+                            sk: { S: `CUIT#${cuit}#TASK#${taskId}` },
+                            
                             task_id: { S: taskId },
                             fintech_id: { S: fintechId },
                             cuit: { S: cuit },

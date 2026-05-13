@@ -4,19 +4,25 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TF_DIR="${SCRIPT_DIR}/terraform"
 
+# --- 1. Validar variables de entorno ---
 if [ -z "$TF_STATE_BUCKET" ] || [ -z "$TF_LOCK_TABLE" ]; then
-  echo "Faltan variables de entorno:"
-  echo "  export TF_STATE_BUCKET=<nombre-del-bucket>"
-  echo "  export TF_LOCK_TABLE=<nombre-de-la-tabla>"
+  echo "Faltan variables de entorno para identificar el estado remoto:"
+  echo "  export TF_STATE_BUCKET=<nombre-del-bucket-estado>"
+  echo "  export TF_LOCK_TABLE=<nombre-de-la-tabla-lock>"
   exit 1
 fi
 
-read -p "Escribí 'destroy' para confirmar: " CONFIRM
+read -p "Escribí 'destroy' para confirmar la destrucción TOTAL de la infraestructura: " CONFIRM
 if [ "$CONFIRM" != "destroy" ]; then
   echo "Cancelado."
   exit 1
 fi
 
+# --- 2. Limpiar Bucket de Frontend (S3 no borra buckets con archivos) ---
+echo "==> Vaciando bucket de frontend: ${TF_FRONTEND_BUCKET_NAME}"
+aws s3 rm "s3://${TF_FRONTEND_BUCKET_NAME}" --recursive || echo "El bucket no existe o ya está vacío."
+
+# --- 3. Terraform destroy ---
 TF_INIT_ARGS=(
   -backend-config="bucket=${TF_STATE_BUCKET}"
   -backend-config="key=terraform.tfstate"
@@ -24,11 +30,23 @@ TF_INIT_ARGS=(
   -backend-config="dynamodb_table=${TF_LOCK_TABLE}"
 )
 
-# --- Terraform destroy ---
-echo "==> Terraform destroy"
+echo "==> Inicializando Terraform"
 cd "${TF_DIR}"
 terraform init -reconfigure "${TF_INIT_ARGS[@]}"
-terraform destroy -auto-approve
+
+echo "==> Ejecutando Terraform DESTROY"
+terraform destroy -auto-approve -var="bucket_name=${TF_FRONTEND_BUCKET_NAME}"
+
+# --- 4. Limpieza de archivos locales ---
+echo "==> Limpiando archivos temporales locales"
+cd "${SCRIPT_DIR}"
+rm -f simulations_engine.zip
+rm -rf db/dist
+rm -rf frontend/dist
 
 echo ""
-echo "Infraestructura destruida."
+echo "======================================================================"
+echo "¡Infraestructura destruida con éxito!"
+echo "Nota: El bucket de estado y la tabla de lock permanecen intactos."
+echo "Para borrarlos, ve a terraform/bootstrap y corre terraform destroy."
+echo "======================================================================"

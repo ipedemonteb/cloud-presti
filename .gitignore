@@ -64,3 +64,6 @@ frontend/.env.*
 
 # Frontend agents
 frontend/AGENTS.md
+
+# ZIPs created
+simulations_engine.zip
