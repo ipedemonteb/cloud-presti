@@ -24,7 +24,7 @@ resource "aws_sqs_queue" "simulations" {
 
 data "archive_file" "simulations_handler_zip" {
   type        = "zip"
-  source_dir  = "${path.root}/../backend/simulations-handler"
+  source_dir  = "${path.root}/../backend/simulations/handler"
   output_path = "${path.root}/.terraform/archives/simulations_handler.zip"
 }
 

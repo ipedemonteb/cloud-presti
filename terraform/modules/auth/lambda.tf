@@ -4,7 +4,7 @@ data "aws_iam_role" "lab_role" {
 
 data "archive_file" "lambda_zip" {
   type        = "zip"
-  source_dir  = "${path.module}/../../../backend/user-auth"
+  source_dir  = "${path.module}/../../../backend/auth"
   output_path = "${path.root}/.terraform/tmp/user-auth-lambda.zip"
 }
 

@@ -21,11 +21,11 @@ python3 -m pip install \
     --implementation cp \
     --python-version 3.11 \
     --only-binary=:all: \
-    -r backend/simulations/requirements.txt
+    -r backend/simulations/engine/requirements.txt
 
 # 3. Copiar el código de la Lambda y los artefactos
 echo "Copiando código fuente y modelo..."
-cp -r backend/simulations/* "${BUILD_DIR}/"
+cp -r backend/simulations/engine/* "${BUILD_DIR}/"
 
 echo "Copiando artefactos del modelo..."
 mkdir -p "${BUILD_DIR}/artifacts"
