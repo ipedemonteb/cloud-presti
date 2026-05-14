@@ -40,8 +40,14 @@ cd "${SCRIPT_DIR}/db"
 npm install --omit=dev
 mkdir -p dist
 
-echo "==> Instalando dependencias de producto"
-cd "${SCRIPT_DIR}/backend/producto"
+echo "==> Instalando dependencias de producto (por endpoint)"
+cd "${SCRIPT_DIR}/backend/producto/get"
+npm install --omit=dev
+cd "${SCRIPT_DIR}/backend/producto/post"
+npm install --omit=dev
+cd "${SCRIPT_DIR}/backend/producto/put"
+npm install --omit=dev
+cd "${SCRIPT_DIR}/backend/producto/delete"
 npm install --omit=dev
 
 echo "==> Instalando dependencias de fintech"

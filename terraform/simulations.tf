@@ -91,7 +91,7 @@ resource "aws_lambda_event_source_mapping" "sqs_to_engine" {
 resource "aws_apigatewayv2_api" "simulations_api" {
   name          = "cloud-presti-simulations-api"
   protocol_type = "HTTP"
-  
+
   cors_configuration {
     allow_origins = ["*"]
     allow_methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
