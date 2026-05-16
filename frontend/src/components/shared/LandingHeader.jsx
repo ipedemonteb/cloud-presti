@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-
 import { Button } from '@/components/ui/button'
 
 function scrollToSection(id) {
@@ -43,9 +42,6 @@ export function LandingHeader() {
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" asChild>
             <Link to="/login">Ingresar</Link>
-          </Button>
-          <Button size="sm" asChild>
-            <Link to="/create-account">Comenzar</Link>
           </Button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, BarChart3, Brain, RefreshCcw } from 'lucide-react'
 
+
 import { Button } from '@/components/ui/button'
 
 const highlights = [
@@ -45,13 +46,10 @@ export function LandingHero() {
 
         <div className="flex flex-col items-center gap-4 pt-4 sm:flex-row">
           <Button size="lg" className="gap-2" asChild>
-            <Link to="/create-account">
-              Crear cuenta
+            <Link to="/login">
+              Ingresar
               <ArrowRight className="size-4" />
             </Link>
-          </Button>
-          <Button size="lg" variant="outline">
-            Agendar demo
           </Button>
         </div>
 

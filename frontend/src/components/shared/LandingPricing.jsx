@@ -1,7 +1,4 @@
-import { Link } from 'react-router-dom'
 import { Check } from 'lucide-react'
-
-import { Button } from '@/components/ui/button'
 
 const plans = [
   {
@@ -14,8 +11,6 @@ const plans = [
       'Acceso a funciones principales',
       'Cargo variable por excedente',
     ],
-    cta: 'Crear cuenta',
-    link: '/create-account',
   },
   {
     name: 'Business',
@@ -27,8 +22,6 @@ const plans = [
       'Mas profundidad de analitica',
       'Pensado para escalar operacion',
     ],
-    cta: 'Crear cuenta',
-    link: '/create-account',
     popular: true,
   },
   {
@@ -41,8 +34,6 @@ const plans = [
       'Soporte dedicado',
       'SLA segun necesidad',
     ],
-    cta: 'Contactar ventas',
-    link: '/create-account',
   },
 ]
 
@@ -91,9 +82,6 @@ export function LandingPricing() {
               ))}
             </ul>
 
-            <Button className="w-full" size="lg" variant={plan.popular ? 'default' : 'outline'} asChild>
-              <Link to={plan.link}>{plan.cta}</Link>
-            </Button>
           </article>
         ))}
       </div>

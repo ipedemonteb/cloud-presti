@@ -3,19 +3,17 @@ import { jwtDecode } from 'jwt-decode'
 
 const AUTH_STORAGE_KEY = 'cloud-dashboard-auth'
 const TOKENS_STORAGE_KEY = 'cloud-dashboard-tokens'
+const MOCK = import.meta.env.VITE_MOCK === 'true'
+const MOCK_USER = { name: 'Usuario Mock', email: 'mock@example.com', sub: 'mock-sub-123' }
 
 const AuthContext = createContext(null)
 
 function getStoredUser() {
-  if (typeof window === 'undefined') {
-    return null
-  }
+  if (typeof window === 'undefined') return null
+  if (MOCK) return MOCK_USER
 
   const rawValue = window.localStorage.getItem(AUTH_STORAGE_KEY)
-
-  if (!rawValue) {
-    return null
-  }
+  if (!rawValue) return null
 
   try {
     return JSON.parse(rawValue)
@@ -48,8 +46,8 @@ export function AuthProvider({ children }) {
           setUser(payload)
           window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(payload))
           window.localStorage.setItem(TOKENS_STORAGE_KEY, JSON.stringify({ accessToken, idToken }))
-          
-          window.history.replaceState(null, '', window.location.pathname)
+
+          window.location.replace('/dashboard')
         } catch (err) {
           console.error('Error decodificando el token:', err)
         }
@@ -59,10 +57,15 @@ export function AuthProvider({ children }) {
   }, [])
 
   const login = () => {
+    if (MOCK) {
+      setUser(MOCK_USER)
+      return
+    }
+
     const cognitoDomain = import.meta.env.VITE_COGNITO_DOMAIN
     const clientId = import.meta.env.VITE_COGNITO_CLIENT_ID
     const redirectUri = import.meta.env.VITE_API_GATEWAY_CALLBACK_URL
-    
+
     if (!cognitoDomain || !clientId || !redirectUri) {
         console.error("Faltan variables de entorno para Cognito")
         return

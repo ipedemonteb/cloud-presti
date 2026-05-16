@@ -6,6 +6,7 @@
   "scripts": {
     "predev": "./setup-env.sh",
     "dev": "vite",
+    "dev:mock": "rm -f .env.local && node mock-server.js & VITE_MOCK=true vite; kill %1 2>/dev/null; true",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
