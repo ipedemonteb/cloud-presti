@@ -34,24 +34,27 @@ TF_INIT_ARGS=(
   -backend-config="dynamodb_table=${TF_LOCK_TABLE}"
 )
 
-# --- 3. Preparar Lambda de migraciones ---
-echo "==> Instalando dependencias de base de datos"
-cd "${SCRIPT_DIR}/db"
-npm install --omit=dev
-mkdir -p dist
-
+# --- 3. Instalar dependencias de Lambdas ---
 echo "==> Instalando dependencias de producto (por endpoint)"
-cd "${SCRIPT_DIR}/backend/producto/get"
+cd "${SCRIPT_DIR}/backend/producto-get"
 npm install --omit=dev
-cd "${SCRIPT_DIR}/backend/producto/post"
+cd "${SCRIPT_DIR}/backend/producto-post"
 npm install --omit=dev
-cd "${SCRIPT_DIR}/backend/producto/put"
+cd "${SCRIPT_DIR}/backend/producto-put"
 npm install --omit=dev
-cd "${SCRIPT_DIR}/backend/producto/delete"
+cd "${SCRIPT_DIR}/backend/producto-delete"
 npm install --omit=dev
 
 echo "==> Instalando dependencias de fintech"
 cd "${SCRIPT_DIR}/backend/fintech"
+npm install --omit=dev
+
+echo "==> Instalando dependencias de simulations handler"
+cd "${SCRIPT_DIR}/backend/simulations/handler"
+npm install --omit=dev
+
+echo "==> Instalando dependencias de simulations results"
+cd "${SCRIPT_DIR}/backend/simulations/results"
 npm install --omit=dev
 
 # --- 4. Terraform init + apply ---
@@ -86,10 +89,6 @@ npm run build
 # --- 7. Subir al bucket S3 ---
 echo "==> Subiendo frontend a S3"
 aws s3 sync dist/ "s3://${BUCKET_NAME}" --delete --acl public-read
-
-# --- 8. Ejecutar Migraciones de DB ---
-echo "==> Ejecutando migraciones en la base de datos"
-bash "${SCRIPT_DIR}/scripts/migrate.sh"
 
 echo ""
 echo "======================================================================"

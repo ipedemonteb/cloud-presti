@@ -1,33 +1,14 @@
 'use strict';
 
-const { SecretsManagerClient, GetSecretValueCommand } = require('@aws-sdk/client-secrets-manager');
-const { Pool } = require('pg');
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
 
-const smClient = new SecretsManagerClient({ region: 'us-east-1' });
-let pool = null;
-
-async function getPool() {
-  if (pool) return pool;
-  const { SecretString } = await smClient.send(
-    new GetSecretValueCommand({ SecretId: process.env.SECRET_ARN })
-  );
-  const { username, password } = JSON.parse(SecretString);
-  pool = new Pool({
-    host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT, 10),
-    database: process.env.DB_NAME,
-    user: username,
-    password,
-    ssl: { rejectUnauthorized: false },
-    max: 1,
-    idleTimeoutMillis: 0,
-  });
-  return pool;
-}
+const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: 'us-east-1' }));
+const TABLE = process.env.DYNAMODB_PRODUCTO_TABLE;
 
 const HEADERS = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
+  'Content-Type':                 'application/json',
+  'Access-Control-Allow-Origin':  '*',
   'Access-Control-Allow-Headers': 'Content-Type,Authorization',
   'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
 };
@@ -46,10 +27,8 @@ exports.handler = async (event) => {
   const sub = event.requestContext?.authorizer?.jwt?.claims?.sub;
   if (!sub) return respond(401, { error: 'Unauthorized' });
 
-  const id = event.pathParameters?.id;
-  if (!id || !/^\d+$/.test(id)) {
-    return respond(400, { error: 'Invalid or missing path parameter: id' });
-  }
+  const producto_id = event.pathParameters?.id;
+  if (!producto_id) return respond(400, { error: 'Invalid or missing path parameter: id' });
 
   let body;
   try { body = JSON.parse(event.body || '{}'); }
@@ -59,19 +38,24 @@ exports.handler = async (event) => {
   if (missing.length > 0) return respond(400, { error: `Missing required fields: ${missing.join(', ')}` });
 
   try {
-    const db = await getPool();
     const { nombre, monto, cuotas, interes, plazo, min_sit_cred, max_sit_cred } = body;
-    const { rows } = await db.query(
-      `UPDATE producto
-       SET nombre = $1, monto = $2, cuotas = $3, interes = $4,
-           plazo = $5, min_sit_cred = $6, max_sit_cred = $7
-       WHERE id = $8 AND sub = $9
-       RETURNING id, sub, nombre, monto, cuotas, interes, plazo, min_sit_cred, max_sit_cred`,
-      [nombre, monto, cuotas, interes, plazo, min_sit_cred, max_sit_cred, parseInt(id, 10), sub]
-    );
-    if (rows.length === 0) return respond(404, { error: 'Producto not found or access denied' });
-    return respond(200, rows[0]);
+    const { Attributes } = await ddb.send(new UpdateCommand({
+      TableName: TABLE,
+      Key: { sub, producto_id },
+      UpdateExpression: 'SET nombre = :n, monto = :m, cuotas = :c, interes = :i, plazo = :p, min_sit_cred = :min, max_sit_cred = :max',
+      ConditionExpression: 'attribute_exists(#sub)',
+      ExpressionAttributeNames: { '#sub': 'sub' },
+      ExpressionAttributeValues: {
+        ':n': nombre, ':m': monto, ':c': cuotas, ':i': interes,
+        ':p': plazo, ':min': min_sit_cred, ':max': max_sit_cred,
+      },
+      ReturnValues: 'ALL_NEW',
+    }));
+    return respond(200, Attributes);
   } catch (err) {
+    if (err.name === 'ConditionalCheckFailedException') {
+      return respond(404, { error: 'Producto not found or access denied' });
+    }
     console.error('Internal error:', err);
     return respond(500, { error: 'Internal server error', message: err.message });
   }

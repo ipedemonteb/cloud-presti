@@ -1,33 +1,11 @@
 'use strict';
 
-const { SecretsManagerClient, GetSecretValueCommand } = require('@aws-sdk/client-secrets-manager');
-const { Pool } = require('pg');
+const { randomUUID } = require('crypto');
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, GetCommand, PutCommand } = require('@aws-sdk/lib-dynamodb');
 
-const smClient = new SecretsManagerClient({ region: 'us-east-1' });
-
-let pool = null;
-
-async function getPool() {
-  if (pool) return pool;
-
-  const { SecretString } = await smClient.send(
-    new GetSecretValueCommand({ SecretId: process.env.SECRET_ARN })
-  );
-  const { username, password } = JSON.parse(SecretString);
-
-  pool = new Pool({
-    host:              process.env.DB_HOST,
-    port:              parseInt(process.env.DB_PORT, 10),
-    database:          process.env.DB_NAME,
-    user:              username,
-    password,
-    ssl:               { rejectUnauthorized: false },
-    max:               1,
-    idleTimeoutMillis: 0,
-  });
-
-  return pool;
-}
+const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: 'us-east-1' }));
+const TABLE = process.env.DYNAMODB_FINTECH_TABLE;
 
 const HEADERS = {
   'Content-Type':                 'application/json',
@@ -44,15 +22,11 @@ exports.handler = async (event) => {
   // Cognito Post Confirmation trigger
   if (event.triggerSource === 'PostConfirmation_ConfirmSignUp') {
     const sub = event.request.userAttributes.sub;
-    const db = await getPool();
-    await db.query(
-      'INSERT INTO fintech (sub) VALUES ($1)',
-      [sub]
-    );
+    await ddb.send(new PutCommand({ TableName: TABLE, Item: { sub } }));
     return event;
   }
 
-  // Evento de API Gateway
+  // API Gateway
   try {
     const method = event.requestContext?.http?.method;
     const path   = event.requestContext?.http?.path;
@@ -62,19 +36,15 @@ exports.handler = async (event) => {
     }
 
     const sub = event.requestContext?.authorizer?.jwt?.claims?.sub;
-    if (!sub) {
-      return respond(401, { error: 'Unauthorized' });
-    }
-
-    const db = await getPool();
+    if (!sub) return respond(401, { error: 'Unauthorized' });
 
     if (method === 'GET' && path === '/fintech') {
-      const { rows } = await db.query(
-        'SELECT sub, nombre, max_sit_bcra FROM fintech WHERE sub = $1',
-        [sub]
-      );
-      if (rows.length === 0) return respond(404, { error: 'Fintech not found' });
-      return respond(200, rows[0]);
+      const { Item } = await ddb.send(new GetCommand({
+        TableName: TABLE,
+        Key: { sub },
+      }));
+      if (!Item) return respond(404, { error: 'Fintech not found' });
+      return respond(200, Item);
     }
 
     return respond(404, { error: 'Route not found' });

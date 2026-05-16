@@ -24,10 +24,7 @@ resource "aws_lambda_function" "fintech" {
 
   environment {
     variables = {
-      DB_HOST    = aws_db_proxy.main.endpoint
-      DB_PORT    = "5432"
-      DB_NAME    = "cloudpresti"
-      SECRET_ARN = module.rds.db_instance_master_user_secret_arn
+      DYNAMODB_FINTECH_TABLE = module.dynamodb_fintech.dynamodb_table_id
     }
   }
 }

@@ -2,25 +2,25 @@
 
 data "archive_file" "producto_get_zip" {
   type        = "zip"
-  source_dir  = "${path.root}/../backend/producto/get"
+  source_dir  = "${path.root}/../backend/producto-get"
   output_path = "${path.root}/.terraform/archives/producto_get.zip"
 }
 
 data "archive_file" "producto_post_zip" {
   type        = "zip"
-  source_dir  = "${path.root}/../backend/producto/post"
+  source_dir  = "${path.root}/../backend/producto-post"
   output_path = "${path.root}/.terraform/archives/producto_post.zip"
 }
 
 data "archive_file" "producto_put_zip" {
   type        = "zip"
-  source_dir  = "${path.root}/../backend/producto/put"
+  source_dir  = "${path.root}/../backend/producto-put"
   output_path = "${path.root}/.terraform/archives/producto_put.zip"
 }
 
 data "archive_file" "producto_delete_zip" {
   type        = "zip"
-  source_dir  = "${path.root}/../backend/producto/delete"
+  source_dir  = "${path.root}/../backend/producto-delete"
   output_path = "${path.root}/.terraform/archives/producto_delete.zip"
 }
 
@@ -46,10 +46,7 @@ resource "aws_lambda_function" "producto_get" {
 
   environment {
     variables = {
-      DB_HOST    = aws_db_proxy.main.endpoint
-      DB_PORT    = "5432"
-      DB_NAME    = "cloudpresti"
-      SECRET_ARN = module.rds.db_instance_master_user_secret_arn
+      DYNAMODB_PRODUCTO_TABLE = module.dynamodb_producto.dynamodb_table_id
     }
   }
 }
@@ -74,10 +71,7 @@ resource "aws_lambda_function" "producto_post" {
 
   environment {
     variables = {
-      DB_HOST    = aws_db_proxy.main.endpoint
-      DB_PORT    = "5432"
-      DB_NAME    = "cloudpresti"
-      SECRET_ARN = module.rds.db_instance_master_user_secret_arn
+      DYNAMODB_PRODUCTO_TABLE = module.dynamodb_producto.dynamodb_table_id
     }
   }
 }
@@ -102,10 +96,7 @@ resource "aws_lambda_function" "producto_put" {
 
   environment {
     variables = {
-      DB_HOST    = aws_db_proxy.main.endpoint
-      DB_PORT    = "5432"
-      DB_NAME    = "cloudpresti"
-      SECRET_ARN = module.rds.db_instance_master_user_secret_arn
+      DYNAMODB_PRODUCTO_TABLE = module.dynamodb_producto.dynamodb_table_id
     }
   }
 }
@@ -130,10 +121,7 @@ resource "aws_lambda_function" "producto_delete" {
 
   environment {
     variables = {
-      DB_HOST    = aws_db_proxy.main.endpoint
-      DB_PORT    = "5432"
-      DB_NAME    = "cloudpresti"
-      SECRET_ARN = module.rds.db_instance_master_user_secret_arn
+      DYNAMODB_PRODUCTO_TABLE = module.dynamodb_producto.dynamodb_table_id
     }
   }
 }
