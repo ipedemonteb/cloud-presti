@@ -21,9 +21,9 @@ const simulations = [
 const MOCK_SUB = 'mock-sub-123'
 
 const productos = [
-  { producto_id: randomUUID(), sub: MOCK_SUB, nombre: 'Préstamo Personal Plus',  monto: 500000, cuotas: 24, interes: 45, plazo: 24, min_sit_cred: 1, max_sit_cred: 2 },
-  { producto_id: randomUUID(), sub: MOCK_SUB, nombre: 'Microcrédito Express',    monto:  80000, cuotas:  6, interes: 65, plazo:  6, min_sit_cred: 1, max_sit_cred: 3 },
-  { producto_id: randomUUID(), sub: MOCK_SUB, nombre: 'Tarjeta Capital Pyme',    monto: 750000, cuotas: 12, interes: 55, plazo: 12, min_sit_cred: 1, max_sit_cred: 2 },
+  { producto_id: randomUUID(), sub: MOCK_SUB, nombre: 'Préstamo Personal Plus',  monto: 500000, cuotas: 24, interes: 45, min_sit_cred: 1, max_sit_cred: 2 },
+  { producto_id: randomUUID(), sub: MOCK_SUB, nombre: 'Microcrédito Express',    monto:  80000, cuotas:  6, interes: 65, min_sit_cred: 1, max_sit_cred: 3 },
+  { producto_id: randomUUID(), sub: MOCK_SUB, nombre: 'Tarjeta Capital Pyme',    monto: 750000, cuotas: 12, interes: 55, min_sit_cred: 1, max_sit_cred: 2 },
 ]
 
 // --- Helpers ---

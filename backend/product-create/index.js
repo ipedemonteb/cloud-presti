@@ -11,7 +11,7 @@ function respond(statusCode, body) {
   return { statusCode, body: JSON.stringify(body) };
 }
 
-const REQUIRED_FIELDS = ['nombre', 'monto', 'cuotas', 'interes', 'plazo', 'min_sit_cred', 'max_sit_cred'];
+const REQUIRED_FIELDS = ['nombre', 'monto', 'cuotas', 'interes', 'min_sit_cred', 'max_sit_cred'];
 
 exports.handler = async (event) => {
 
@@ -26,7 +26,13 @@ exports.handler = async (event) => {
   if (missing.length > 0) return respond(400, { error: `Missing required fields: ${missing.join(', ')}` });
 
   try {
-    const { nombre, monto, cuotas, interes, plazo, min_sit_cred, max_sit_cred } = body;
+    const { nombre, monto, cuotas, interes, min_sit_cred, max_sit_cred } = body;
+    
+    if (min_sit_cred > max_sit_cred) {
+      return respond(400, { error: 'min_sit_cred cannot be greater than max_sit_cred' });
+    }
+
+    const plazo = body.plazo !== undefined ? body.plazo : cuotas;
     const producto_id = randomUUID();
     const item = { sub, producto_id, nombre, monto, cuotas, interes, plazo, min_sit_cred, max_sit_cred };
 

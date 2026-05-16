@@ -23,8 +23,8 @@ const MOCK = import.meta.env.VITE_MOCK === 'true'
 const TOKENS_KEY = 'cloud-dashboard-tokens'
 
 const MOCK_PRODUCTS = [
-  { producto_id: 'mock-1', sub: 'mock-sub-123', nombre: 'Préstamo Personal Plus', monto: 500000, cuotas: 24, interes: 45, plazo: 24, min_sit_cred: 1, max_sit_cred: 2 },
-  { producto_id: 'mock-2', sub: 'mock-sub-123', nombre: 'Microcrédito Express',   monto:  80000, cuotas:  6, interes: 65, plazo:  6, min_sit_cred: 1, max_sit_cred: 3 },
+  { producto_id: 'mock-1', sub: 'mock-sub-123', nombre: 'Préstamo Personal Plus', monto: 500000, cuotas: 24, interes: 45, min_sit_cred: 1, max_sit_cred: 2 },
+  { producto_id: 'mock-2', sub: 'mock-sub-123', nombre: 'Microcrédito Express',   monto:  80000, cuotas:  6, interes: 65, min_sit_cred: 1, max_sit_cred: 3 },
 ]
 
 function authHeaders() {
@@ -36,15 +36,14 @@ function authHeaders() {
 }
 
 const EMPTY_FORM = {
-  nombre: '', monto: '', cuotas: '', interes: '', plazo: '', min_sit_cred: '', max_sit_cred: '',
+  nombre: '', monto: '', cuotas: '', interes: '', min_sit_cred: '', max_sit_cred: '',
 }
 
 const FIELDS = [
   { key: 'nombre',       label: 'Nombre del producto',           type: 'text',   placeholder: 'Ej: Préstamo Personal Plus', colSpan: 2 },
   { key: 'monto',        label: 'Monto (ARS)',                   type: 'number', placeholder: 'Ej: 500000' },
-  { key: 'cuotas',       label: 'Cuotas',                        type: 'number', placeholder: 'Ej: 24' },
+  { key: 'cuotas',       label: 'Cuotas (meses)',                type: 'number', placeholder: 'Ej: 24' },
   { key: 'interes',      label: 'Tasa de interés anual (%)',      type: 'number', placeholder: 'Ej: 45' },
-  { key: 'plazo',        label: 'Plazo (meses)',                  type: 'number', placeholder: 'Ej: 24' },
   { key: 'min_sit_cred', label: 'Situación crediticia mínima',   type: 'number', placeholder: '1 – 6' },
   { key: 'max_sit_cred', label: 'Situación crediticia máxima',   type: 'number', placeholder: '1 – 6' },
 ]
@@ -64,7 +63,6 @@ function ProductForm({ open, onOpenChange, initial, onSubmit, isSaving }) {
         monto:        String(initial.monto),
         cuotas:       String(initial.cuotas),
         interes:      String(initial.interes),
-        plazo:        String(initial.plazo),
         min_sit_cred: String(initial.min_sit_cred),
         max_sit_cred: String(initial.max_sit_cred),
       } : EMPTY_FORM)
@@ -99,7 +97,6 @@ function ProductForm({ open, onOpenChange, initial, onSubmit, isSaving }) {
       monto:        parseFloat(form.monto),
       cuotas:       parseInt(form.cuotas),
       interes:      parseFloat(form.interes),
-      plazo:        parseInt(form.plazo),
       min_sit_cred: parseInt(form.min_sit_cred),
       max_sit_cred: parseInt(form.max_sit_cred),
     })
@@ -111,34 +108,62 @@ function ProductForm({ open, onOpenChange, initial, onSubmit, isSaving }) {
     <DialogRoot open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>{isEdit ? 'Editar producto' : 'Agregar producto'}</DialogTitle>
+          <DialogTitle className="text-lg font-bold">{isEdit ? 'Editar producto' : 'Agregar producto'}</DialogTitle>
           <DialogDescription>
             {isEdit ? 'Modificá los parámetros del producto financiero.' : 'Completá los parámetros del nuevo producto financiero.'}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-4">
-            {FIELDS.map(({ key, label, type, placeholder, colSpan }) => (
-              <div key={key} className={`space-y-1.5 ${colSpan === 2 ? 'col-span-2' : ''}`}>
-                <Label htmlFor={key}>{label}</Label>
-                <Input
-                  id={key}
-                  type={type}
-                  placeholder={placeholder}
-                  value={form[key]}
-                  onChange={e => handleChange(key, e.target.value)}
-                  aria-invalid={Boolean(errors[key])}
-                  min={type === 'number' ? 0 : undefined}
-                />
-                {errors[key] && (
-                  <p className="text-xs text-destructive">{errors[key]}</p>
-                )}
-              </div>
-            ))}
+        <form onSubmit={handleSubmit} className="space-y-6 pt-2">
+          {/* Condiciones financieras */}
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              {FIELDS.slice(0, 4).map(({ key, label, type, placeholder, colSpan }) => (
+                <div key={key} className={`space-y-1.5 ${colSpan === 2 ? 'md:col-span-2' : ''}`}>
+                  <Label htmlFor={key}>{label}</Label>
+                  <Input
+                    id={key}
+                    type={type}
+                    placeholder={placeholder}
+                    value={form[key]}
+                    onChange={e => handleChange(key, e.target.value)}
+                    aria-invalid={Boolean(errors[key])}
+                    min={type === 'number' ? 0 : undefined}
+                    className="bg-muted/50 focus:bg-background transition-colors"
+                  />
+                  {errors[key] && (
+                    <p className="text-xs text-destructive font-medium">{errors[key]}</p>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
 
-          <DialogFooter>
+          {/* Requisitos de elegibilidad */}
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              {FIELDS.slice(4).map(({ key, label, type, placeholder, colSpan }) => (
+                <div key={key} className={`space-y-1.5 ${colSpan === 2 ? 'md:col-span-2' : ''}`}>
+                  <Label htmlFor={key}>{label}</Label>
+                  <Input
+                    id={key}
+                    type={type}
+                    placeholder={placeholder}
+                    value={form[key]}
+                    onChange={e => handleChange(key, e.target.value)}
+                    aria-invalid={Boolean(errors[key])}
+                    min={type === 'number' ? 0 : undefined}
+                    className="bg-muted/50 focus:bg-background transition-colors"
+                  />
+                  {errors[key] && (
+                    <p className="text-xs text-destructive font-medium">{errors[key]}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter className="pt-2">
             <DialogClose asChild>
               <Button type="button" variant="outline" disabled={isSaving}>Cancelar</Button>
             </DialogClose>
@@ -187,16 +212,12 @@ function ProductCard({ product, onEdit, onDelete }) {
             <p className="font-medium">{formatARS(product.monto)}</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Cuotas</p>
-            <p className="font-medium">{product.cuotas} cuotas</p>
+            <p className="text-xs text-muted-foreground">Cuotas (plazo)</p>
+            <p className="font-medium">{product.cuotas} meses</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Tasa anual</p>
             <p className="font-medium">{product.interes}%</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Plazo</p>
-            <p className="font-medium">{product.plazo} meses</p>
           </div>
         </div>
         <div className="rounded-xl bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
