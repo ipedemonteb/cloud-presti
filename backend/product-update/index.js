@@ -6,23 +6,13 @@ const { DynamoDBDocumentClient, UpdateCommand } = require('@aws-sdk/lib-dynamodb
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: 'us-east-1' }));
 const TABLE = process.env.DYNAMODB_PRODUCTO_TABLE;
 
-const HEADERS = {
-  'Content-Type':                 'application/json',
-  'Access-Control-Allow-Origin':  '*',
-  'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-  'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-};
-
 function respond(statusCode, body) {
-  return { statusCode, headers: HEADERS, body: JSON.stringify(body) };
+  return { statusCode, body: JSON.stringify(body) };
 }
 
 const REQUIRED_FIELDS = ['nombre', 'monto', 'cuotas', 'interes', 'plazo', 'min_sit_cred', 'max_sit_cred'];
 
 exports.handler = async (event) => {
-  if (event.requestContext?.http?.method === 'OPTIONS') {
-    return { statusCode: 200, headers: HEADERS, body: '' };
-  }
 
   const sub = event.requestContext?.authorizer?.jwt?.claims?.sub;
   if (!sub) return respond(401, { error: 'Unauthorized' });
@@ -54,7 +44,7 @@ exports.handler = async (event) => {
     return respond(200, Attributes);
   } catch (err) {
     if (err.name === 'ConditionalCheckFailedException') {
-      return respond(404, { error: 'Producto not found or access denied' });
+      return respond(404, { error: 'Product not found' });
     }
     console.error('Internal error:', err);
     return respond(500, { error: 'Internal server error', message: err.message });

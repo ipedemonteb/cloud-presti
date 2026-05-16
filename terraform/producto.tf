@@ -1,38 +1,38 @@
 # --- Archives ---
 
-data "archive_file" "producto_get_zip" {
+data "archive_file" "product_get_zip" {
   type        = "zip"
-  source_dir  = "${path.root}/../backend/producto-get"
-  output_path = "${path.root}/.terraform/archives/producto_get.zip"
+  source_dir  = "${path.root}/../backend/product-get"
+  output_path = "${path.root}/.terraform/archives/product_get.zip"
 }
 
-data "archive_file" "producto_post_zip" {
+data "archive_file" "product_create_zip" {
   type        = "zip"
-  source_dir  = "${path.root}/../backend/producto-post"
-  output_path = "${path.root}/.terraform/archives/producto_post.zip"
+  source_dir  = "${path.root}/../backend/product-create"
+  output_path = "${path.root}/.terraform/archives/product_create.zip"
 }
 
-data "archive_file" "producto_put_zip" {
+data "archive_file" "product_update_zip" {
   type        = "zip"
-  source_dir  = "${path.root}/../backend/producto-put"
-  output_path = "${path.root}/.terraform/archives/producto_put.zip"
+  source_dir  = "${path.root}/../backend/product-update"
+  output_path = "${path.root}/.terraform/archives/product_update.zip"
 }
 
-data "archive_file" "producto_delete_zip" {
+data "archive_file" "product_delete_zip" {
   type        = "zip"
-  source_dir  = "${path.root}/../backend/producto-delete"
-  output_path = "${path.root}/.terraform/archives/producto_delete.zip"
+  source_dir  = "${path.root}/../backend/product-delete"
+  output_path = "${path.root}/.terraform/archives/product_delete.zip"
 }
 
 # --- Lambda functions ---
 
-resource "aws_lambda_function" "producto_get" {
-  function_name    = "cloud-presti-producto-get"
+resource "aws_lambda_function" "product_get" {
+  function_name    = "cloud-presti-product-get"
   role             = data.aws_iam_role.lab_role.arn
   handler          = "index.handler"
   runtime          = "nodejs20.x"
-  filename         = data.archive_file.producto_get_zip.output_path
-  source_code_hash = data.archive_file.producto_get_zip.output_base64sha256
+  filename         = data.archive_file.product_get_zip.output_path
+  source_code_hash = data.archive_file.product_get_zip.output_base64sha256
   timeout          = 30
   memory_size      = 256
 
@@ -51,13 +51,13 @@ resource "aws_lambda_function" "producto_get" {
   }
 }
 
-resource "aws_lambda_function" "producto_post" {
-  function_name    = "cloud-presti-producto-post"
+resource "aws_lambda_function" "product_create" {
+  function_name    = "cloud-presti-product-create"
   role             = data.aws_iam_role.lab_role.arn
   handler          = "index.handler"
   runtime          = "nodejs20.x"
-  filename         = data.archive_file.producto_post_zip.output_path
-  source_code_hash = data.archive_file.producto_post_zip.output_base64sha256
+  filename         = data.archive_file.product_create_zip.output_path
+  source_code_hash = data.archive_file.product_create_zip.output_base64sha256
   timeout          = 30
   memory_size      = 256
 
@@ -76,13 +76,13 @@ resource "aws_lambda_function" "producto_post" {
   }
 }
 
-resource "aws_lambda_function" "producto_put" {
-  function_name    = "cloud-presti-producto-put"
+resource "aws_lambda_function" "product_update" {
+  function_name    = "cloud-presti-product-update"
   role             = data.aws_iam_role.lab_role.arn
   handler          = "index.handler"
   runtime          = "nodejs20.x"
-  filename         = data.archive_file.producto_put_zip.output_path
-  source_code_hash = data.archive_file.producto_put_zip.output_base64sha256
+  filename         = data.archive_file.product_update_zip.output_path
+  source_code_hash = data.archive_file.product_update_zip.output_base64sha256
   timeout          = 30
   memory_size      = 256
 
@@ -101,13 +101,13 @@ resource "aws_lambda_function" "producto_put" {
   }
 }
 
-resource "aws_lambda_function" "producto_delete" {
-  function_name    = "cloud-presti-producto-delete"
+resource "aws_lambda_function" "product_delete" {
+  function_name    = "cloud-presti-product-delete"
   role             = data.aws_iam_role.lab_role.arn
   handler          = "index.handler"
   runtime          = "nodejs20.x"
-  filename         = data.archive_file.producto_delete_zip.output_path
-  source_code_hash = data.archive_file.producto_delete_zip.output_base64sha256
+  filename         = data.archive_file.product_delete_zip.output_path
+  source_code_hash = data.archive_file.product_delete_zip.output_base64sha256
   timeout          = 30
   memory_size      = 256
 
@@ -142,39 +142,39 @@ resource "aws_apigatewayv2_authorizer" "cognito_jwt" {
 
 # --- Integrations ---
 
-resource "aws_apigatewayv2_integration" "producto_get" {
+resource "aws_apigatewayv2_integration" "product_get" {
   api_id                 = aws_apigatewayv2_api.simulations_api.id
   integration_type       = "AWS_PROXY"
   connection_type        = "INTERNET"
   integration_method     = "POST"
-  integration_uri        = aws_lambda_function.producto_get.invoke_arn
+  integration_uri        = aws_lambda_function.product_get.invoke_arn
   payload_format_version = "2.0"
 }
 
-resource "aws_apigatewayv2_integration" "producto_post" {
+resource "aws_apigatewayv2_integration" "product_create" {
   api_id                 = aws_apigatewayv2_api.simulations_api.id
   integration_type       = "AWS_PROXY"
   connection_type        = "INTERNET"
   integration_method     = "POST"
-  integration_uri        = aws_lambda_function.producto_post.invoke_arn
+  integration_uri        = aws_lambda_function.product_create.invoke_arn
   payload_format_version = "2.0"
 }
 
-resource "aws_apigatewayv2_integration" "producto_put" {
+resource "aws_apigatewayv2_integration" "product_update" {
   api_id                 = aws_apigatewayv2_api.simulations_api.id
   integration_type       = "AWS_PROXY"
   connection_type        = "INTERNET"
   integration_method     = "POST"
-  integration_uri        = aws_lambda_function.producto_put.invoke_arn
+  integration_uri        = aws_lambda_function.product_update.invoke_arn
   payload_format_version = "2.0"
 }
 
-resource "aws_apigatewayv2_integration" "producto_delete" {
+resource "aws_apigatewayv2_integration" "product_delete" {
   api_id                 = aws_apigatewayv2_api.simulations_api.id
   integration_type       = "AWS_PROXY"
   connection_type        = "INTERNET"
   integration_method     = "POST"
-  integration_uri        = aws_lambda_function.producto_delete.invoke_arn
+  integration_uri        = aws_lambda_function.product_delete.invoke_arn
   payload_format_version = "2.0"
 }
 
@@ -183,7 +183,7 @@ resource "aws_apigatewayv2_integration" "producto_delete" {
 resource "aws_apigatewayv2_route" "get_producto" {
   api_id             = aws_apigatewayv2_api.simulations_api.id
   route_key          = "GET /producto"
-  target             = "integrations/${aws_apigatewayv2_integration.producto_get.id}"
+  target             = "integrations/${aws_apigatewayv2_integration.product_get.id}"
   authorization_type = "JWT"
   authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
 }
@@ -191,7 +191,7 @@ resource "aws_apigatewayv2_route" "get_producto" {
 resource "aws_apigatewayv2_route" "post_producto" {
   api_id             = aws_apigatewayv2_api.simulations_api.id
   route_key          = "POST /producto"
-  target             = "integrations/${aws_apigatewayv2_integration.producto_post.id}"
+  target             = "integrations/${aws_apigatewayv2_integration.product_create.id}"
   authorization_type = "JWT"
   authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
 }
@@ -199,7 +199,7 @@ resource "aws_apigatewayv2_route" "post_producto" {
 resource "aws_apigatewayv2_route" "put_producto" {
   api_id             = aws_apigatewayv2_api.simulations_api.id
   route_key          = "PUT /producto/{id}"
-  target             = "integrations/${aws_apigatewayv2_integration.producto_put.id}"
+  target             = "integrations/${aws_apigatewayv2_integration.product_update.id}"
   authorization_type = "JWT"
   authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
 }
@@ -207,41 +207,41 @@ resource "aws_apigatewayv2_route" "put_producto" {
 resource "aws_apigatewayv2_route" "delete_producto" {
   api_id             = aws_apigatewayv2_api.simulations_api.id
   route_key          = "DELETE /producto/{id}"
-  target             = "integrations/${aws_apigatewayv2_integration.producto_delete.id}"
+  target             = "integrations/${aws_apigatewayv2_integration.product_delete.id}"
   authorization_type = "JWT"
   authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
 }
 
 # --- Lambda permissions ---
 
-resource "aws_lambda_permission" "api_gw_producto_get" {
-  statement_id  = "AllowExecutionFromAPIGatewayProductoGet"
+resource "aws_lambda_permission" "api_gw_product_get" {
+  statement_id  = "AllowExecutionFromAPIGatewayProductGet"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.producto_get.function_name
+  function_name = aws_lambda_function.product_get.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.simulations_api.execution_arn}/*/*"
 }
 
-resource "aws_lambda_permission" "api_gw_producto_post" {
-  statement_id  = "AllowExecutionFromAPIGatewayProductoPost"
+resource "aws_lambda_permission" "api_gw_product_create" {
+  statement_id  = "AllowExecutionFromAPIGatewayProductCreate"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.producto_post.function_name
+  function_name = aws_lambda_function.product_create.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.simulations_api.execution_arn}/*/*"
 }
 
-resource "aws_lambda_permission" "api_gw_producto_put" {
-  statement_id  = "AllowExecutionFromAPIGatewayProductoPut"
+resource "aws_lambda_permission" "api_gw_product_update" {
+  statement_id  = "AllowExecutionFromAPIGatewayProductUpdate"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.producto_put.function_name
+  function_name = aws_lambda_function.product_update.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.simulations_api.execution_arn}/*/*"
 }
 
-resource "aws_lambda_permission" "api_gw_producto_delete" {
-  statement_id  = "AllowExecutionFromAPIGatewayProductoDelete"
+resource "aws_lambda_permission" "api_gw_product_delete" {
+  statement_id  = "AllowExecutionFromAPIGatewayProductDelete"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.producto_delete.function_name
+  function_name = aws_lambda_function.product_delete.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.simulations_api.execution_arn}/*/*"
 }

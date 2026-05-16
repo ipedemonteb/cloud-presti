@@ -36,17 +36,19 @@ TF_INIT_ARGS=(
 
 # --- 3. Instalar dependencias de Lambdas ---
 echo "==> Instalando dependencias de producto (por endpoint)"
-cd "${SCRIPT_DIR}/backend/producto-get"
+cd "${SCRIPT_DIR}/backend/product-get"
 npm install --omit=dev
-cd "${SCRIPT_DIR}/backend/producto-post"
+cd "${SCRIPT_DIR}/backend/product-create"
 npm install --omit=dev
-cd "${SCRIPT_DIR}/backend/producto-put"
+cd "${SCRIPT_DIR}/backend/product-update"
 npm install --omit=dev
-cd "${SCRIPT_DIR}/backend/producto-delete"
+cd "${SCRIPT_DIR}/backend/product-delete"
 npm install --omit=dev
 
-echo "==> Instalando dependencias de fintech"
-cd "${SCRIPT_DIR}/backend/fintech"
+echo "==> Instalando dependencias de fintech (por endpoint)"
+cd "${SCRIPT_DIR}/backend/fintech-post-confirmation"
+npm install --omit=dev
+cd "${SCRIPT_DIR}/backend/fintech-get"
 npm install --omit=dev
 
 echo "==> Instalando dependencias de simulations handler"

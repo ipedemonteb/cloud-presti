@@ -13,17 +13,17 @@ resource "aws_cognito_user_pool" "main" {
   }
 
   lambda_config {
-    post_confirmation = aws_lambda_function.fintech.arn
+    post_confirmation = aws_lambda_function.fintech_post_confirmation.arn
   }
 }
 
 resource "aws_cognito_user_pool_domain" "main" {
-  domain       = "cloud-presti-auth-domain"
+  domain       = "cloud-presti-auth-domain-2"
   user_pool_id = aws_cognito_user_pool.main.id
 }
 
 resource "aws_cognito_user_pool_client" "main" {
-  name         = "cloud-presti-client"
+  name         = "cloud-presti-client-2"
   user_pool_id = aws_cognito_user_pool.main.id
 
   generate_secret = true
