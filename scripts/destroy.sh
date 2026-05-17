@@ -19,12 +19,12 @@ if [ "$CONFIRM" != "destroy" ]; then
   exit 1
 fi
 
-bash "${SCRIPT_DIR}/scripts/terraform-init.sh"
-bash "${SCRIPT_DIR}/scripts/terraform-destroy.sh"
+bash "${SCRIPT_DIR}/terraform-init.sh"
+bash "${SCRIPT_DIR}/terraform-destroy.sh"
 
 # --- 3. Limpieza local ---
 echo "==> Limpiando archivos temporales locales"
-rm -rf "${SCRIPT_DIR}/frontend/dist"
+rm -rf "${SCRIPT_DIR}/../frontend/dist"
 
 echo ""
 echo "======================================================================"
