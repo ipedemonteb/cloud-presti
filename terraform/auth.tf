@@ -1,5 +1,5 @@
 resource "aws_cognito_user_pool" "main" {
-  name = "cloud-presti-user-pool"
+  name = "${var.project_name}-user-pool"
 
   username_attributes      = ["email"]
   auto_verified_attributes = ["email"]
@@ -18,12 +18,12 @@ resource "aws_cognito_user_pool" "main" {
 }
 
 resource "aws_cognito_user_pool_domain" "main" {
-  domain       = "cloud-presti-auth-domain-3"
+  domain       = "${var.project_name}-auth-domain-3"
   user_pool_id = aws_cognito_user_pool.main.id
 }
 
 resource "aws_cognito_user_pool_client" "main" {
-  name         = "cloud-presti-client-2"
+  name         = "${var.project_name}-client-2"
   user_pool_id = aws_cognito_user_pool.main.id
 
   generate_secret = true
@@ -39,7 +39,7 @@ resource "aws_cognito_user_pool_client" "main" {
 
 resource "aws_lambda_function" "auth_callback" {
   filename         = data.archive_file.lambdas["auth-callback"].output_path
-  function_name    = "cloud-presti-auth-callback"
+  function_name    = "${var.project_name}-auth-callback"
   role             = data.aws_iam_role.lab_role.arn
   handler          = "index.handler"
   source_code_hash = data.archive_file.lambdas["auth-callback"].output_base64sha256
@@ -51,7 +51,7 @@ resource "aws_lambda_function" "auth_callback" {
     variables = {
       COGNITO_CLIENT_ID     = aws_cognito_user_pool_client.main.id
       COGNITO_CLIENT_SECRET = aws_cognito_user_pool_client.main.client_secret
-      COGNITO_DOMAIN        = "https://${aws_cognito_user_pool_domain.main.domain}.auth.us-east-1.amazoncognito.com"
+      COGNITO_DOMAIN        = "https://${aws_cognito_user_pool_domain.main.domain}.auth.${var.aws_region}.amazoncognito.com"
       FRONTEND_URL          = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
     }
   }

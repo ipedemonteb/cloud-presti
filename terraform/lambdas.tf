@@ -55,7 +55,7 @@ resource "aws_lambda_event_source_mapping" "mappings" {
 
 resource "aws_lambda_function" "lambdas" {
   for_each         = local.lambda_configs
-  function_name    = "cloud-presti-${each.key}"
+  function_name    = "${var.project_name}-${each.key}"
   role             = data.aws_iam_role.lab_role.arn
   handler          = each.value.handler
   runtime          = each.value.runtime

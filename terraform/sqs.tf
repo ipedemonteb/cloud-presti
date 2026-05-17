@@ -1,4 +1,4 @@
 resource "aws_sqs_queue" "simulations" {
-  name                       = "cloud-presti-simulations-queue"
+  name                       = "${var.project_name}-simulations-queue"
   visibility_timeout_seconds = 300
 }

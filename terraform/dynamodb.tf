@@ -2,24 +2,24 @@ module "dynamodb_simulations" {
   source  = "terraform-aws-modules/dynamodb-table/aws"
   version = "4.4.0"
 
-  name      = "cloud-presti-simulations"
-  hash_key  = "pk"
+  name      = "${var.project_name}-simulations"
+  hash_key  = "sub"
   range_key = "sk"
 
   attributes = [
-    { name = "pk", type = "S" },
-    { name = "sk", type = "S" },
+    { name = "sub", type = "S" },
+    { name = "sk",  type = "S" },
   ]
 
   billing_mode = "PAY_PER_REQUEST"
-  tags         = { Project = "cloud-presti" }
+  tags         = { Project = var.project_name }
 }
 
 module "dynamodb_fintech" {
   source  = "terraform-aws-modules/dynamodb-table/aws"
   version = "4.4.0"
 
-  name     = "cloud-presti-fintech"
+  name     = "${var.project_name}-fintech"
   hash_key = "sub"
 
   attributes = [
@@ -27,14 +27,14 @@ module "dynamodb_fintech" {
   ]
 
   billing_mode = "PAY_PER_REQUEST"
-  tags         = { Project = "cloud-presti" }
+  tags         = { Project = var.project_name }
 }
 
 module "dynamodb_producto" {
   source  = "terraform-aws-modules/dynamodb-table/aws"
   version = "4.4.0"
 
-  name      = "cloud-presti-producto"
+  name      = "${var.project_name}-producto"
   hash_key  = "sub"
   range_key = "producto_id"
 
@@ -44,14 +44,14 @@ module "dynamodb_producto" {
   ]
 
   billing_mode = "PAY_PER_REQUEST"
-  tags         = { Project = "cloud-presti" }
+  tags         = { Project = var.project_name }
 }
 
 module "dynamodb_usuario" {
   source  = "terraform-aws-modules/dynamodb-table/aws"
   version = "4.4.0"
 
-  name      = "cloud-presti-usuario"
+  name      = "${var.project_name}-usuario"
   hash_key  = "sub"
   range_key = "cuit"
 
@@ -61,5 +61,5 @@ module "dynamodb_usuario" {
   ]
 
   billing_mode = "PAY_PER_REQUEST"
-  tags         = { Project = "cloud-presti" }
+  tags         = { Project = var.project_name }
 }

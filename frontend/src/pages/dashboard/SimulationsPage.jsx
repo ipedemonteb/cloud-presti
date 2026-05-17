@@ -99,7 +99,7 @@ export default function SimulationsPage() {
       const response = await fetch(`${import.meta.env.VITE_SIMULATIONS_API_URL}/simulations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify({ cuit: cuit, fintech_id: 'test' })
+        body: JSON.stringify({ cuit: cuit })
       })
       if (!response.ok) {
         throw new Error('Error al iniciar la simulación')
@@ -116,7 +116,7 @@ export default function SimulationsPage() {
   const handleRefresh = async () => {
     setIsRefreshing(true)
     try {
-      const response = await fetch(`${import.meta.env.VITE_SIMULATIONS_API_URL}/simulations?fintech_id=test`, {
+      const response = await fetch(`${import.meta.env.VITE_SIMULATIONS_API_URL}/simulations`, {
         headers: authHeaders()
       })
       if (!response.ok) {

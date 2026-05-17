@@ -1,7 +1,7 @@
 # --- API ---
 
 resource "aws_apigatewayv2_api" "simulations_api" {
-  name          = "cloud-presti-simulations-api"
+  name          = "${var.project_name}-simulations-api"
   protocol_type = "HTTP"
 
   cors_configuration {
@@ -27,7 +27,7 @@ resource "aws_apigatewayv2_authorizer" "cognito_jwt" {
 
   jwt_configuration {
     audience = [aws_cognito_user_pool_client.main.id]
-    issuer   = "https://cognito-idp.us-east-1.amazonaws.com/${aws_cognito_user_pool.main.id}"
+    issuer   = "https://cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.main.id}"
   }
 }
 

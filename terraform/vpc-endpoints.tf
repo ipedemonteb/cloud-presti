@@ -1,6 +1,6 @@
 resource "aws_vpc_endpoint" "dynamodb" {
   vpc_id            = module.vpc.vpc_id
-  service_name      = "com.amazonaws.us-east-1.dynamodb"
+  service_name      = "com.amazonaws.${var.aws_region}.dynamodb"
   vpc_endpoint_type = "Gateway"
   route_table_ids = [
     module.vpc.route_table_ids["private-rt-az-a"],
@@ -22,7 +22,7 @@ resource "aws_security_group" "interface_endpoints" {
 
 resource "aws_vpc_endpoint" "sqs" {
   vpc_id              = module.vpc.vpc_id
-  service_name        = "com.amazonaws.us-east-1.sqs"
+  service_name        = "com.amazonaws.${var.aws_region}.sqs"
   vpc_endpoint_type   = "Interface"
   subnet_ids          = [module.vpc.subnet_ids["10.0.2.0/24"], module.vpc.subnet_ids["10.0.5.0/24"]]
   security_group_ids  = [aws_security_group.interface_endpoints.id]

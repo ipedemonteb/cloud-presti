@@ -1,8 +1,3 @@
-variable "bucket_name" {
-  description = "Nombre del bucket S3 para el frontend estático"
-  type        = string
-}
-
 resource "aws_s3_bucket" "frontend" {
   bucket        = var.bucket_name
   force_destroy = true

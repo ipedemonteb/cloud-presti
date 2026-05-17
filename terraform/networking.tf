@@ -2,9 +2,9 @@ module "vpc" {
   source = "./modules/network"
 
   vpc_config = {
-    name       = "cloud-presti-vpc"
+    name       = "${var.project_name}-vpc"
     cidr_block = "10.0.0.0/16"
-    region     = "us-east-1"
+    region     = var.aws_region
   }
 
   subnets_config = [
@@ -12,25 +12,25 @@ module "vpc" {
     {
       name              = "public-az-a"
       cidr_block        = "10.0.1.0/24"
-      availability_zone = "us-east-1a"
+      availability_zone = "${var.aws_region}a"
       nat_gateway       = true
     },
     {
       name              = "private-az-a-1"
       cidr_block        = "10.0.2.0/24"
-      availability_zone = "us-east-1a"
+      availability_zone = "${var.aws_region}a"
     },
     # AZ b
     {
       name              = "public-az-b"
       cidr_block        = "10.0.4.0/24"
-      availability_zone = "us-east-1b"
+      availability_zone = "${var.aws_region}b"
       nat_gateway       = true
     },
     {
       name              = "private-az-b-1"
       cidr_block        = "10.0.5.0/24"
-      availability_zone = "us-east-1b"
+      availability_zone = "${var.aws_region}b"
     },
   ]
 

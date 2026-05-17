@@ -146,11 +146,11 @@ def _read_json(path: Path):
     with path.open("r", encoding="utf-8") as f:
         return json.load(f)
 
-def update_simulation_status(fintech_id: str, cuit: str, task_id: str, status: str, score: float = None, error: str = None):
+def update_simulation_status(sub: str, cuit: str, task_id: str, status: str, score: float = None, error: str = None):
     if not DYNAMODB_TABLE:
         print("DYNAMODB_TABLE_NAME no definida, omitiendo guardado.")
         return
-        
+
     try:
         update_expression = "SET #st = :status, updated_at = :now"
         expression_values = {
@@ -158,20 +158,20 @@ def update_simulation_status(fintech_id: str, cuit: str, task_id: str, status: s
             ":now": {"S": datetime.datetime.now(datetime.timezone.utc).isoformat()}
         }
         expression_names = {"#st": "status"}
-        
+
         if score is not None:
             update_expression += ", score = :score"
             expression_values[":score"] = {"N": str(score)}
-            
+
         if error is not None:
             update_expression += ", error_message = :error"
             expression_values[":error"] = {"S": str(error)}
-            
+
         dynamodb.update_item(
             TableName=DYNAMODB_TABLE,
             Key={
-                "pk": {"S": f"FINTECH#{fintech_id}"},
-                "sk": {"S": f"CUIT#{cuit}#TASK#{task_id}"}
+                "sub": {"S": sub},
+                "sk":  {"S": f"CUIT#{cuit}#TASK#{task_id}"}
             },
             UpdateExpression=update_expression,
             ExpressionAttributeValues=expression_values,
@@ -250,33 +250,33 @@ def lambda_handler(event, context):
     for record in event.get('Records', []):
         task_id = None
         cuit = None
-        fintech_id = None
+        sub = None
         try:
             body = json.loads(record['body'])
             task_id = body.get('task_id')
             cuit = body.get('cuit')
-            fintech_id = body.get('fintech_id')
-            
-            if not task_id or not cuit or not fintech_id:
+            sub = body.get('sub')
+
+            if not task_id or not cuit or not sub:
                 print("Mensaje inválido, faltan campos requeridos, ignorando.")
                 continue
-                
-            print(f"Procesando Task: {task_id} - CUIT: {cuit} - Fintech: {fintech_id}")
-            
+
+            print(f"Procesando Task: {task_id} - CUIT: {cuit} - Sub: {sub}")
+
             bcra_data = consultar_bcra(cuit)
-            
+
             features = features_desde_api(bcra_data)
             if features is None:
                 raise ValueError("No hay suficientes periodos en BCRA (min 7).")
-                
+
             score = predecir_score(features)
             print(f"Score calculado: {score}")
-            
-            update_simulation_status(fintech_id, cuit, task_id, "COMPLETED", score=score)
-            
+
+            update_simulation_status(sub, cuit, task_id, "COMPLETED", score=score)
+
         except Exception as e:
             print(f"Error procesando: {str(e)}")
-            if task_id and fintech_id and cuit:
-                update_simulation_status(fintech_id, cuit, task_id, "FAILED", error=str(e))
+            if task_id and sub and cuit:
+                update_simulation_status(sub, cuit, task_id, "FAILED", error=str(e))
             
     return {"statusCode": 200, "body": "OK"}

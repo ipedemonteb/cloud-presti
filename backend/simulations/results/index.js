@@ -16,23 +16,20 @@ exports.handler = async (event) => {
             "Access-Control-Allow-Methods": "OPTIONS,GET"
         };
 
-        const { queryStringParameters } = event;
-
-        if (!queryStringParameters || !queryStringParameters.fintech_id) {
-            return {
-                statusCode: 400,
-                headers,
-                body: JSON.stringify({ error: "El parámetro 'fintech_id' es obligatorio" })
-            };
+        const sub = event.requestContext?.authorizer?.jwt?.claims?.sub;
+        if (!sub) {
+            return { statusCode: 401, headers, body: JSON.stringify({ error: "No se pudo obtener el sub del token" }) };
         }
 
-        const { fintech_id, cuit, task_id } = queryStringParameters;
+        const { queryStringParameters } = event;
+        const { cuit, task_id } = queryStringParameters || {};
 
         let queryParams = {
             TableName: DYNAMODB_TABLE,
-            KeyConditionExpression: "pk = :pk",
+            KeyConditionExpression: "#sub = :sub",
+            ExpressionAttributeNames: { "#sub": "sub" },
             ExpressionAttributeValues: {
-                ":pk": `FINTECH#${fintech_id}`
+                ":sub": sub
             }
         };
 

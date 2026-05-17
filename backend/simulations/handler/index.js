@@ -7,6 +7,7 @@ const dynamoClient = new DynamoDBClient({});
 
 const QUEUE_URL = process.env.SQS_QUEUE_URL;
 const DYNAMODB_TABLE = process.env.DYNAMODB_TABLE_NAME;
+const DYNAMODB_USUARIO_TABLE = process.env.DYNAMODB_USUARIO_TABLE;
 
 exports.handler = async (event) => {
     try {
@@ -38,15 +39,27 @@ exports.handler = async (event) => {
                 return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON in request body" }) };
             }
             const cuit = parsedBody.cuit;
-            const fintechId = parsedBody.fintech_id;
 
-            if (!cuit || !fintechId) {
-                return { 
-                    statusCode: 400, 
-                    headers, 
-                    body: JSON.stringify({ error: "Missing 'cuit' or 'fintech_id' in request body" }) 
+            if (!cuit) {
+                return {
+                    statusCode: 400,
+                    headers,
+                    body: JSON.stringify({ error: "Missing 'cuit' in request body" })
                 };
             }
+
+            const sub = event.requestContext?.authorizer?.jwt?.claims?.sub;
+            if (!sub) {
+                return { statusCode: 401, headers, body: JSON.stringify({ error: "No se pudo obtener el sub del token" }) };
+            }
+
+            await dynamoClient.send(new PutItemCommand({
+                TableName: DYNAMODB_USUARIO_TABLE,
+                Item: {
+                    sub:  { S: sub },
+                    cuit: { S: cuit }
+                }
+            }));
 
             const taskId = uuidv4();
             const timestamp = new Date().toISOString();
@@ -56,13 +69,11 @@ exports.handler = async (event) => {
                     await dynamoClient.send(new PutItemCommand({
                         TableName: DYNAMODB_TABLE,
                         Item: {
-                            pk: { S: `FINTECH#${fintechId}` },
-                            sk: { S: `CUIT#${cuit}#TASK#${taskId}` },
-                            
-                            task_id: { S: taskId },
-                            fintech_id: { S: fintechId },
-                            cuit: { S: cuit },
-                            status: { S: "PROCESSING" },
+                            sub:        { S: sub },
+                            sk:         { S: `CUIT#${cuit}#TASK#${taskId}` },
+                            task_id:    { S: taskId },
+                            cuit:       { S: cuit },
+                            status:     { S: "PROCESSING" },
                             created_at: { S: timestamp }
                         }
                     }));
@@ -79,9 +90,9 @@ exports.handler = async (event) => {
                 await sqsClient.send(new SendMessageCommand({
                     QueueUrl: QUEUE_URL,
                     MessageBody: JSON.stringify({
-                        task_id: taskId,
-                        cuit: cuit,
-                        fintech_id: fintechId,
+                        task_id:   taskId,
+                        cuit:      cuit,
+                        sub:       sub,
                         timestamp: timestamp
                     })
                 }));
