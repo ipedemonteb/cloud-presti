@@ -1,3 +1,22 @@
+resource "aws_dynamodb_table" "simulations" {
+  name           = "cloud-presti-simulations"
+  billing_mode   = "PROVISIONED"
+  read_capacity  = 1
+  write_capacity = 1
+  hash_key       = "pk"
+  range_key      = "sk"
+
+  attribute {
+    name = "pk"
+    type = "S"
+  }
+
+  attribute {
+    name = "sk"
+    type = "S"
+  }
+}
+
 module "dynamodb_fintech" {
   source  = "terraform-aws-modules/dynamodb-table/aws"
   version = "4.4.0"

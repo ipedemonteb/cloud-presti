@@ -105,6 +105,28 @@ locals {
       }
     }
   }
+
+  api_integrations = {
+    "auth-callback"       = aws_lambda_function.auth_callback.invoke_arn
+    "fintech-get"         = aws_lambda_function.lambdas["fintech-get"].invoke_arn
+    "product-get"         = aws_lambda_function.lambdas["product-get"].invoke_arn
+    "product-create"      = aws_lambda_function.lambdas["product-create"].invoke_arn
+    "product-update"      = aws_lambda_function.lambdas["product-update"].invoke_arn
+    "product-delete"      = aws_lambda_function.lambdas["product-delete"].invoke_arn
+    "simulations-handler" = aws_lambda_function.lambdas["simulations-handler"].invoke_arn
+    "simulations-results" = aws_lambda_function.lambdas["simulations-results"].invoke_arn
+  }
+
+  api_routes = {
+    "callback"         = { route_key = "GET /callback",         integration = "auth-callback",       auth = false }
+    "fintech-get"      = { route_key = "GET /fintech",          integration = "fintech-get",         auth = true  }
+    "producto-get"     = { route_key = "GET /producto",         integration = "product-get",         auth = true  }
+    "producto-post"    = { route_key = "POST /producto",        integration = "product-create",      auth = true  }
+    "producto-put"     = { route_key = "PUT /producto/{id}",    integration = "product-update",      auth = true  }
+    "producto-delete"  = { route_key = "DELETE /producto/{id}", integration = "product-delete",      auth = true  }
+    "simulations-post" = { route_key = "POST /simulations",     integration = "simulations-handler", auth = true  }
+    "simulations-get"  = { route_key = "GET /simulations",      integration = "simulations-results", auth = true  }
+  }
 }
 
 data "archive_file" "lambdas" {

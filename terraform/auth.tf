@@ -57,20 +57,18 @@ resource "aws_lambda_function" "auth_callback" {
   }
 }
 
-resource "aws_apigatewayv2_integration" "auth_callback" {
-  api_id           = aws_apigatewayv2_api.simulations_api.id
-  integration_type = "AWS_PROXY"
-
-  connection_type        = "INTERNET"
-  description            = "Auth callback Lambda integration"
-  integration_method     = "POST"
-  integration_uri        = aws_lambda_function.auth_callback.invoke_arn
-  payload_format_version = "2.0"
+output "auth_user_pool_id" {
+  value = aws_cognito_user_pool.main.id
 }
 
-resource "aws_apigatewayv2_route" "callback" {
-  api_id    = aws_apigatewayv2_api.simulations_api.id
-  route_key = "GET /callback"
-  target    = "integrations/${aws_apigatewayv2_integration.auth_callback.id}"
+output "auth_client_id" {
+  value = aws_cognito_user_pool_client.main.id
 }
 
+output "auth_cognito_domain" {
+  value = aws_cognito_user_pool_domain.main.domain
+}
+
+output "auth_api_gateway_endpoint" {
+  value = aws_apigatewayv2_api.simulations_api.api_endpoint
+}
