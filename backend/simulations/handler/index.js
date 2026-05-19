@@ -11,9 +11,9 @@ const DYNAMODB_USER_TABLE = process.env.DYNAMODB_USER_TABLE;
 
 exports.handler = async (event) => {
     try {
-        console.log("Evento recibido:", JSON.stringify(event));
+        console.log("Event received:", JSON.stringify(event));
 
-        // En API Gateway v2, el método está en requestContext.http.method
+        // In API Gateway v2, the method is in requestContext.http.method
         const httpMethod = event.requestContext?.http?.method || event.httpMethod;
         const body = event.body;
 
@@ -29,14 +29,14 @@ exports.handler = async (event) => {
 
         if (httpMethod === 'POST') {
             if (!body) {
-                return { statusCode: 400, headers, body: JSON.stringify({ error: "Body is missing" }) };
+                return { statusCode: 400, headers, body: JSON.stringify({ error: "Falta el body" }) };
             }
 
             let parsedBody;
             try {
                 parsedBody = JSON.parse(body);
             } catch (parseError) {
-                return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON in request body" }) };
+                return { statusCode: 400, headers, body: JSON.stringify({ error: "JSON inválido en el body" }) };
             }
             const cuit = parsedBody.cuit;
 
@@ -44,7 +44,7 @@ exports.handler = async (event) => {
                 return {
                     statusCode: 400,
                     headers,
-                    body: JSON.stringify({ error: "Missing 'cuit' in request body" })
+                    body: JSON.stringify({ error: "Falta 'cuit' en el body" })
                 };
             }
 
@@ -77,13 +77,13 @@ exports.handler = async (event) => {
                             created_at: { S: timestamp }
                         }
                     }));
-                    console.log(`Registro creado en DynamoDB para task_id: ${taskId}`);
+                    console.log(`Record created in DynamoDB for task_id: ${taskId}`);
                 } catch (dbError) {
-                    console.error("Error guardando en DynamoDB:", dbError);
+                    console.error("Error writing to DynamoDB:", dbError);
                     return { statusCode: 500, headers, body: JSON.stringify({ error: "Error interno al inicializar simulación" }) };
                 }
             } else {
-                console.warn("DYNAMODB_TABLE_NAME no está definida.");
+                console.warn("DYNAMODB_TABLE_NAME is not defined.");
             }
 
             if (QUEUE_URL) {
@@ -96,9 +96,9 @@ exports.handler = async (event) => {
                         timestamp: timestamp
                     })
                 }));
-                console.log(`Mensaje enviado a SQS para task_id: ${taskId}`);
+                console.log(`Message sent to SQS for task_id: ${taskId}`);
             } else {
-                console.warn("SQS_QUEUE_URL no está definida en las variables de entorno.");
+                console.warn("SQS_QUEUE_URL is not defined in environment variables.");
                 return { statusCode: 500, headers, body: JSON.stringify({ error: "Configuración interna del servidor incompleta (SQS)" }) };
             }
 
@@ -120,7 +120,7 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error("Error en la API:", error);
+        console.error("API error:", error);
         return {
             statusCode: 500,
             headers: { "Access-Control-Allow-Origin": "*" },

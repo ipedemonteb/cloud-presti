@@ -31,8 +31,8 @@ function rank(products, scoreX10) {
       eligible.push(base);
     } else {
       const reason = scoreX10 < min
-        ? `Score ${scoreX10.toFixed(2)} below the minimum ${min}`
-        : `Score ${scoreX10.toFixed(2)} above the maximum ${max}`;
+        ? `Score ${scoreX10.toFixed(2)} por debajo del mínimo ${min}`
+        : `Score ${scoreX10.toFixed(2)} por encima del máximo ${max}`;
       not_eligible.push({ ...base, reason });
     }
   }
@@ -45,10 +45,10 @@ function rank(products, scoreX10) {
 exports.handler = async (event) => {
   try {
     const sub = event.requestContext?.authorizer?.jwt?.claims?.sub;
-    if (!sub) return respond(401, { error: 'Unauthorized' });
+    if (!sub) return respond(401, { error: 'No autorizado' });
 
     const taskId = event.queryStringParameters?.task_id;
-    if (!taskId) return respond(400, { error: 'Missing required query param: task_id' });
+    if (!taskId) return respond(400, { error: 'Falta el query param: task_id' });
 
     const simResp = await docClient.send(new QueryCommand({
       TableName: SIMULATIONS_TABLE,
@@ -59,7 +59,7 @@ exports.handler = async (event) => {
     }));
 
     if (!simResp.Items || simResp.Items.length === 0) {
-      return respond(404, { error: 'Simulation not found' });
+      return respond(404, { error: 'Simulación no encontrada' });
     }
     const simulation = simResp.Items[0];
 
@@ -95,6 +95,6 @@ exports.handler = async (event) => {
     });
   } catch (err) {
     console.error('Error in recommendations-get:', err);
-    return respond(500, { error: 'Internal server error', message: err.message });
+    return respond(500, { error: 'Error interno del servidor', message: err.message });
   }
 };

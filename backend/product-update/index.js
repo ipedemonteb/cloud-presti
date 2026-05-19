@@ -15,27 +15,27 @@ const REQUIRED_FIELDS = ['name', 'amount', 'installments', 'interest', 'min_scor
 exports.handler = async (event) => {
 
   const sub = event.requestContext?.authorizer?.jwt?.claims?.sub;
-  if (!sub) return respond(401, { error: 'Unauthorized' });
+  if (!sub) return respond(401, { error: 'No autorizado' });
 
   const product_id = event.pathParameters?.id;
-  if (!product_id) return respond(400, { error: 'Invalid or missing path parameter: id' });
+  if (!product_id) return respond(400, { error: 'Falta el path parameter: id' });
 
   let body;
   try { body = JSON.parse(event.body || '{}'); }
-  catch { return respond(400, { error: 'Invalid JSON body' }); }
+  catch { return respond(400, { error: 'JSON inválido en el body' }); }
 
   const missing = REQUIRED_FIELDS.filter(f => body[f] === undefined);
-  if (missing.length > 0) return respond(400, { error: `Missing required fields: ${missing.join(', ')}` });
+  if (missing.length > 0) return respond(400, { error: `Faltan campos requeridos: ${missing.join(', ')}` });
 
   try {
     const { name, amount, installments, interest, min_score, max_score, priority } = body;
 
     if (min_score > max_score) {
-      return respond(400, { error: 'min_score cannot be greater than max_score' });
+      return respond(400, { error: 'min_score no puede ser mayor que max_score' });
     }
 
     if (!Number.isInteger(priority) || priority < 1 || priority > 10) {
-      return respond(400, { error: 'priority must be an integer between 1 and 10' });
+      return respond(400, { error: 'priority debe ser un entero entre 1 y 10' });
     }
 
     const term = body.term !== undefined ? body.term : installments;
@@ -54,9 +54,9 @@ exports.handler = async (event) => {
     return respond(200, Attributes);
   } catch (err) {
     if (err.name === 'ConditionalCheckFailedException') {
-      return respond(404, { error: 'Product not found' });
+      return respond(404, { error: 'Producto no encontrado' });
     }
     console.error('Internal error:', err);
-    return respond(500, { error: 'Internal server error', message: err.message });
+    return respond(500, { error: 'Error interno del servidor', message: err.message });
   }
 };

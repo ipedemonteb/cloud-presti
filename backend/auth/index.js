@@ -36,7 +36,7 @@ exports.handler = async (event) => {
 
         if (!response.ok) {
             const errorData = await response.text();
-            console.error("Error desde Cognito:", errorData);
+            console.error("Error from Cognito:", errorData);
             return {
                 statusCode: response.status,
                 body: JSON.stringify({ error: "Error al intercambiar el código", details: errorData })
@@ -54,7 +54,7 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error("Error interno en la Lambda:", error);
+        console.error("Internal Lambda error:", error);
         return {
             statusCode: 500,
             body: JSON.stringify({ error: "Error interno del servidor" }),

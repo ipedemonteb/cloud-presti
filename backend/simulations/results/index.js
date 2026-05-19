@@ -8,7 +8,7 @@ const DYNAMODB_TABLE = process.env.DYNAMODB_TABLE_NAME;
 
 exports.handler = async (event) => {
     try {
-        console.log("Evento recibido:", JSON.stringify(event));
+        console.log("Event received:", JSON.stringify(event));
 
         const headers = {
             "Access-Control-Allow-Origin": "*",
@@ -53,7 +53,7 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error("Error consultando resultados:", error);
+        console.error("Error querying results:", error);
         return {
             statusCode: 500,
             headers: { "Access-Control-Allow-Origin": "*" },

@@ -13,7 +13,7 @@ function respond(statusCode, body) {
 exports.handler = async (event) => {
 
   const sub = event.requestContext?.authorizer?.jwt?.claims?.sub;
-  if (!sub) return respond(401, { error: 'Unauthorized' });
+  if (!sub) return respond(401, { error: 'No autorizado' });
 
   try {
     const { Items } = await ddb.send(new QueryCommand({
@@ -25,6 +25,6 @@ exports.handler = async (event) => {
     return respond(200, Items);
   } catch (err) {
     console.error('Internal error:', err);
-    return respond(500, { error: 'Internal server error', message: err.message });
+    return respond(500, { error: 'Error interno del servidor', message: err.message });
   }
 };

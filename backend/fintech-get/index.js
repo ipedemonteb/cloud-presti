@@ -13,17 +13,17 @@ function respond(statusCode, body) {
 exports.handler = async (event) => {
 
   const sub = event.requestContext?.authorizer?.jwt?.claims?.sub;
-  if (!sub) return respond(401, { error: 'Unauthorized' });
+  if (!sub) return respond(401, { error: 'No autorizado' });
 
   try {
     const { Item } = await ddb.send(new GetCommand({
       TableName: TABLE,
       Key: { sub },
     }));
-    if (!Item) return respond(404, { error: 'Fintech not found' });
+    if (!Item) return respond(404, { error: 'Fintech no encontrada' });
     return respond(200, Item);
   } catch (err) {
     console.error('Internal error:', err);
-    return respond(500, { error: 'Internal server error', message: err.message });
+    return respond(500, { error: 'Error interno del servidor', message: err.message });
   }
 };

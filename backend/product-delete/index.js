@@ -13,10 +13,10 @@ function respond(statusCode, body) {
 exports.handler = async (event) => {
 
   const sub = event.requestContext?.authorizer?.jwt?.claims?.sub;
-  if (!sub) return respond(401, { error: 'Unauthorized' });
+  if (!sub) return respond(401, { error: 'No autorizado' });
 
   const product_id = event.pathParameters?.id;
-  if (!product_id) return respond(400, { error: 'Invalid or missing path parameter: id' });
+  if (!product_id) return respond(400, { error: 'Falta el path parameter: id' });
 
   try {
     await ddb.send(new DeleteCommand({
@@ -25,12 +25,12 @@ exports.handler = async (event) => {
       ConditionExpression: 'attribute_exists(#sub)',
       ExpressionAttributeNames: { '#sub': 'sub' },
     }));
-    return respond(200, { message: 'Product deleted successfully' });
+    return respond(200, { message: 'Producto eliminado correctamente' });
   } catch (err) {
     if (err.name === 'ConditionalCheckFailedException') {
-      return respond(404, { error: 'Product not found' });
+      return respond(404, { error: 'Producto no encontrado' });
     }
     console.error('Internal error:', err);
-    return respond(500, { error: 'Internal server error', message: err.message });
+    return respond(500, { error: 'Error interno del servidor', message: err.message });
   }
 };
