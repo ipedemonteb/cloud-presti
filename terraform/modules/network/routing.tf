@@ -54,12 +54,12 @@ resource "aws_route" "route" {
   lifecycle {
     precondition {
       condition     = each.value.target != "nat" || length(local.rt_az_map[each.value.route_table_name]) == 1
-      error_message = "La route table '${each.value.route_table_name}' tiene subnets en multiples AZs. Para usar target 'nat', todas las subnets deben estar en la misma AZ."
+      error_message = "Route table '${each.value.route_table_name}' has subnets in multiple AZs. To use target 'nat', all subnets must be in the same AZ."
     }
 
     precondition {
       condition     = each.value.target != "nat" || contains(keys(local.nat_gw_by_az), each.value.az)
-      error_message = "No existe un NAT Gateway en la availability zone '${each.value.az}' para la ruta '${each.value.cidr_block}' en la route table '${each.value.route_table_name}'."
+      error_message = "No NAT Gateway exists in availability zone '${each.value.az}' for route '${each.value.cidr_block}' in route table '${each.value.route_table_name}'."
     }
   }
 }

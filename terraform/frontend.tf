@@ -42,7 +42,7 @@ resource "aws_s3_bucket_website_configuration" "frontend" {
 resource "aws_s3_bucket_policy" "frontend_public_read" {
   depends_on = [aws_s3_bucket_public_access_block.frontend]
   bucket     = aws_s3_bucket.frontend.id
-  policy     = jsonencode({
+  policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
       {
@@ -83,11 +83,11 @@ resource "terraform_data" "build_frontend" {
 }
 
 output "bucket_name" {
-  description = "Nombre del bucket S3"
+  description = "S3 bucket name"
   value       = aws_s3_bucket.frontend.bucket
 }
 
 output "website_endpoint" {
-  description = "URL HTTP del sitio web estático"
+  description = "HTTP URL of the static website"
   value       = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
 }

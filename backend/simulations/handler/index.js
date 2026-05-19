@@ -7,7 +7,7 @@ const dynamoClient = new DynamoDBClient({});
 
 const QUEUE_URL = process.env.SQS_QUEUE_URL;
 const DYNAMODB_TABLE = process.env.DYNAMODB_TABLE_NAME;
-const DYNAMODB_USUARIO_TABLE = process.env.DYNAMODB_USUARIO_TABLE;
+const DYNAMODB_USER_TABLE = process.env.DYNAMODB_USER_TABLE;
 
 exports.handler = async (event) => {
     try {
@@ -54,7 +54,7 @@ exports.handler = async (event) => {
             }
 
             await dynamoClient.send(new PutItemCommand({
-                TableName: DYNAMODB_USUARIO_TABLE,
+                TableName: DYNAMODB_USER_TABLE,
                 Item: {
                     sub:  { S: sub },
                     cuit: { S: cuit }

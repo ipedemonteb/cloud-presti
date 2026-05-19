@@ -12,7 +12,7 @@ resource "aws_cognito_user_pool" "main" {
     require_uppercase = true
   }
 
-# TODO: Delete this
+  # TODO: Delete this
   schema {
     attribute_data_type      = "String"
     developer_only_attribute = false

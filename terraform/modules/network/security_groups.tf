@@ -54,8 +54,8 @@ resource "aws_security_group_rule" "ingress" {
 
   source_security_group_id = each.value.security_group_ref != null ? (
     contains(local.sg_names, each.value.security_group_ref)
-      ? aws_security_group.sg[each.value.security_group_ref].id
-      : each.value.security_group_ref
+    ? aws_security_group.sg[each.value.security_group_ref].id
+    : each.value.security_group_ref
   ) : null
 }
 
@@ -72,7 +72,7 @@ resource "aws_security_group_rule" "egress" {
 
   source_security_group_id = each.value.security_group_ref != null ? (
     contains(local.sg_names, each.value.security_group_ref)
-      ? aws_security_group.sg[each.value.security_group_ref].id
-      : each.value.security_group_ref
+    ? aws_security_group.sg[each.value.security_group_ref].id
+    : each.value.security_group_ref
   ) : null
 }

@@ -8,7 +8,7 @@ module "dynamodb_simulations" {
 
   attributes = [
     { name = "sub", type = "S" },
-    { name = "sk",  type = "S" },
+    { name = "sk", type = "S" },
   ]
 
   billing_mode = "PAY_PER_REQUEST"
@@ -30,33 +30,33 @@ module "dynamodb_fintech" {
   tags         = { Project = var.project_name }
 }
 
-module "dynamodb_producto" {
+module "dynamodb_product" {
   source  = "terraform-aws-modules/dynamodb-table/aws"
   version = "4.4.0"
 
-  name      = "${var.project_name}-producto"
+  name      = "${var.project_name}-product"
   hash_key  = "sub"
-  range_key = "producto_id"
+  range_key = "product_id"
 
   attributes = [
-    { name = "sub",         type = "S" },
-    { name = "producto_id", type = "S" },
+    { name = "sub", type = "S" },
+    { name = "product_id", type = "S" },
   ]
 
   billing_mode = "PAY_PER_REQUEST"
   tags         = { Project = var.project_name }
 }
 
-module "dynamodb_usuario" {
+module "dynamodb_user" {
   source  = "terraform-aws-modules/dynamodb-table/aws"
   version = "4.4.0"
 
-  name      = "${var.project_name}-usuario"
+  name      = "${var.project_name}-user"
   hash_key  = "sub"
   range_key = "cuit"
 
   attributes = [
-    { name = "sub",  type = "S" },
+    { name = "sub", type = "S" },
     { name = "cuit", type = "S" },
   ]
 

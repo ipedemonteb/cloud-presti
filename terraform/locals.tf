@@ -52,7 +52,7 @@ locals {
       memory_size = 256
       in_vpc      = true
       env_vars = {
-        DYNAMODB_PRODUCTO_TABLE = module.dynamodb_producto.dynamodb_table_id
+        DYNAMODB_PRODUCT_TABLE = module.dynamodb_product.dynamodb_table_id
       }
     }
     "product-create" = {
@@ -62,7 +62,7 @@ locals {
       memory_size = 256
       in_vpc      = true
       env_vars = {
-        DYNAMODB_PRODUCTO_TABLE = module.dynamodb_producto.dynamodb_table_id
+        DYNAMODB_PRODUCT_TABLE = module.dynamodb_product.dynamodb_table_id
       }
     }
     "product-update" = {
@@ -72,7 +72,7 @@ locals {
       memory_size = 256
       in_vpc      = true
       env_vars = {
-        DYNAMODB_PRODUCTO_TABLE = module.dynamodb_producto.dynamodb_table_id
+        DYNAMODB_PRODUCT_TABLE = module.dynamodb_product.dynamodb_table_id
       }
     }
     "product-delete" = {
@@ -82,7 +82,7 @@ locals {
       memory_size = 256
       in_vpc      = true
       env_vars = {
-        DYNAMODB_PRODUCTO_TABLE = module.dynamodb_producto.dynamodb_table_id
+        DYNAMODB_PRODUCT_TABLE = module.dynamodb_product.dynamodb_table_id
       }
     }
     "simulations-handler" = {
@@ -92,9 +92,9 @@ locals {
       memory_size = 256
       in_vpc      = true
       env_vars = {
-        SQS_QUEUE_URL          = aws_sqs_queue.simulations.url
-        DYNAMODB_TABLE_NAME    = module.dynamodb_simulations.dynamodb_table_id
-        DYNAMODB_USUARIO_TABLE = module.dynamodb_usuario.dynamodb_table_id
+        SQS_QUEUE_URL       = aws_sqs_queue.simulations.url
+        DYNAMODB_TABLE_NAME = module.dynamodb_simulations.dynamodb_table_id
+        DYNAMODB_USER_TABLE = module.dynamodb_user.dynamodb_table_id
       }
     }
     "simulations-results" = {
@@ -126,8 +126,8 @@ locals {
       memory_size = 256
       in_vpc      = true
       env_vars = {
-        DYNAMODB_TABLE_NAME     = module.dynamodb_simulations.dynamodb_table_id
-        DYNAMODB_PRODUCTO_TABLE = module.dynamodb_producto.dynamodb_table_id
+        DYNAMODB_TABLE_NAME    = module.dynamodb_simulations.dynamodb_table_id
+        DYNAMODB_PRODUCT_TABLE = module.dynamodb_product.dynamodb_table_id
       }
     }
   }
@@ -191,12 +191,12 @@ locals {
     "callback"            = { route_key = "GET /callback", integration = "auth-callback", auth = false }
     "fintech-get"         = { route_key = "GET /fintech", integration = "fintech-get", auth = true }
     "fintech-put"         = { route_key = "PUT /fintech", integration = "fintech-update", auth = true }
-    "producto-get"        = { route_key = "GET /producto", integration = "product-get", auth = true }
-    "producto-post"       = { route_key = "POST /producto", integration = "product-create", auth = true }
-    "producto-put"        = { route_key = "PUT /producto/{id}", integration = "product-update", auth = true }
-    "producto-delete"     = { route_key = "DELETE /producto/{id}", integration = "product-delete", auth = true }
+    "product-get"         = { route_key = "GET /product", integration = "product-get", auth = true }
+    "product-post"        = { route_key = "POST /product", integration = "product-create", auth = true }
+    "product-put"         = { route_key = "PUT /product/{id}", integration = "product-update", auth = true }
+    "product-delete"      = { route_key = "DELETE /product/{id}", integration = "product-delete", auth = true }
     "simulations-post"    = { route_key = "POST /simulations", integration = "simulations-handler", auth = true }
     "simulations-get"     = { route_key = "GET /simulations", integration = "simulations-results", auth = true }
-    "recomendaciones-get" = { route_key = "GET /recomendaciones", integration = "recommendations-get", auth = true }
+    "recommendations-get" = { route_key = "GET /recommendations", integration = "recommendations-get", auth = true }
   }
 }

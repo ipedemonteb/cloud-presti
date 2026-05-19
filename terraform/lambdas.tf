@@ -33,7 +33,7 @@ locals {
   }
 }
 
-# --- Permisos de lambdas ---
+# --- Lambda permissions ---
 
 resource "aws_lambda_permission" "permissions" {
   for_each      = local.lambda_permissions_flat

@@ -7,7 +7,7 @@ const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 
 const SIMULATIONS_TABLE = process.env.DYNAMODB_TABLE_NAME;
-const PRODUCTO_TABLE = process.env.DYNAMODB_PRODUCTO_TABLE;
+const PRODUCT_TABLE = process.env.DYNAMODB_PRODUCT_TABLE;
 
 const HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -19,27 +19,27 @@ function respond(statusCode, body) {
   return { statusCode, headers: HEADERS, body: JSON.stringify(body) };
 }
 
-function rank(productos, scoreX10) {
-  const elegibles = [];
-  const no_elegibles = [];
-  for (const p of productos) {
+function rank(products, scoreX10) {
+  const eligible = [];
+  const not_eligible = [];
+  for (const p of products) {
     const min = Number(p.min_score);
     const max = Number(p.max_score);
-    const prioridad = Number(p.prioridad ?? 0);
-    const base = { ...p, prioridad };
+    const priority = Number(p.priority ?? 0);
+    const base = { ...p, priority };
     if (scoreX10 >= min && scoreX10 <= max) {
-      elegibles.push(base);
+      eligible.push(base);
     } else {
-      const motivo = scoreX10 < min
-        ? `Score ${scoreX10.toFixed(2)} por debajo del mínimo ${min}`
-        : `Score ${scoreX10.toFixed(2)} por encima del máximo ${max}`;
-      no_elegibles.push({ ...base, motivo });
+      const reason = scoreX10 < min
+        ? `Score ${scoreX10.toFixed(2)} below the minimum ${min}`
+        : `Score ${scoreX10.toFixed(2)} above the maximum ${max}`;
+      not_eligible.push({ ...base, reason });
     }
   }
-  const byPriority = (a, b) => b.prioridad - a.prioridad || String(a.nombre).localeCompare(String(b.nombre));
-  elegibles.sort(byPriority);
-  no_elegibles.sort(byPriority);
-  return { elegibles, no_elegibles };
+  const byPriority = (a, b) => b.priority - a.priority || String(a.name).localeCompare(String(b.name));
+  eligible.sort(byPriority);
+  not_eligible.sort(byPriority);
+  return { eligible, not_eligible };
 }
 
 exports.handler = async (event) => {
@@ -63,7 +63,7 @@ exports.handler = async (event) => {
     }
     const simulation = simResp.Items[0];
 
-    const baseCliente = {
+    const baseClient = {
       cuit: simulation.cuit,
       status: simulation.status,
       score: null,
@@ -73,28 +73,28 @@ exports.handler = async (event) => {
     };
 
     if (simulation.status !== 'COMPLETED' || simulation.score === undefined || simulation.score === null) {
-      return respond(200, { cliente: baseCliente, elegibles: [], no_elegibles: [] });
+      return respond(200, { client: baseClient, eligible: [], not_eligible: [] });
     }
 
     const prodResp = await docClient.send(new QueryCommand({
-      TableName: PRODUCTO_TABLE,
+      TableName: PRODUCT_TABLE,
       KeyConditionExpression: '#sub = :sub',
       ExpressionAttributeNames: { '#sub': 'sub' },
       ExpressionAttributeValues: { ':sub': sub },
     }));
 
-    const productos = prodResp.Items || [];
+    const products = prodResp.Items || [];
     const score = Number(simulation.score);
     const scoreX10 = score * 10;
-    const { elegibles, no_elegibles } = rank(productos, scoreX10);
+    const { eligible, not_eligible } = rank(products, scoreX10);
 
     return respond(200, {
-      cliente: { ...baseCliente, score, score_x10: scoreX10 },
-      elegibles,
-      no_elegibles,
+      client: { ...baseClient, score, score_x10: scoreX10 },
+      eligible,
+      not_eligible,
     });
   } catch (err) {
-    console.error('Error en recommendations-get:', err);
+    console.error('Error in recommendations-get:', err);
     return respond(500, { error: 'Internal server error', message: err.message });
   }
 };

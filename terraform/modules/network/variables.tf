@@ -1,5 +1,5 @@
 variable "vpc_config" {
-  description = "Configuracion de la VPC"
+  description = "VPC configuration"
   type = object({
     name       = string
     cidr_block = string
@@ -8,7 +8,7 @@ variable "vpc_config" {
 }
 
 variable "subnets_config" {
-  description = "Lista de CIDR blocks para las subnets"
+  description = "List of CIDR blocks for the subnets"
   type = list(object({
     name              = string
     cidr_block        = string
@@ -18,11 +18,11 @@ variable "subnets_config" {
 }
 
 variable "route_tables_config" {
-  description = "Configuracion de las route tables"
+  description = "Route tables configuration"
   type = list(object({
     name    = string
     subnets = list(string)
-    routes  = list(object({
+    routes = list(object({
       cidr_block = string
       target     = string
     }))
@@ -31,9 +31,9 @@ variable "route_tables_config" {
 }
 
 variable "security_groups_config" {
-  description = "Configuracion de los security groups"
+  description = "Security groups configuration"
   type = list(object({
-    name    = string
+    name = string
     inbound = list(object({
       protocol           = string
       from_port          = number

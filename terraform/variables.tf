@@ -9,6 +9,6 @@ variable "project_name" {
 }
 
 variable "bucket_name" {
-  description = "Nombre del bucket S3 para el frontend estático"
+  description = "S3 bucket name for the static frontend"
   type        = string
 }

@@ -98,18 +98,18 @@ function ProductRow({ product, disabled }) {
     <div className={`rounded-xl border p-3 transition-colors ${disabled ? 'border-dashed bg-muted/30 opacity-60' : 'border-border bg-card hover:bg-muted/30'}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-medium leading-snug">{product.nombre}</p>
+          <p className="font-medium leading-snug">{product.name}</p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {formatARS(product.monto)} · {product.cuotas} cuotas · {product.interes}% anual
+            {formatARS(product.amount)} · {product.installments} cuotas · {product.interest}% anual
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
             Scoring admitido: <span className="font-medium text-foreground">{product.min_score} – {product.max_score}</span>
           </p>
-          {disabled && product.motivo && (
-            <p className="text-xs text-orange-600 mt-1">{product.motivo}</p>
+          {disabled && product.reason && (
+            <p className="text-xs text-orange-600 mt-1">{product.reason}</p>
           )}
         </div>
-        <PriorityBadge value={product.prioridad} />
+        <PriorityBadge value={product.priority} />
       </div>
     </div>
   )
@@ -119,11 +119,11 @@ function RecommendationsDialog({ open, onOpenChange, query, recommendations, isL
   if (!query) return null
 
   const estado = query.estado
-  const elegibles = recommendations?.elegibles || []
-  const no_elegibles = recommendations?.no_elegibles || []
-  const scoreX10 = recommendations?.cliente?.score_x10 ?? null
-  const rejection_reasons = recommendations?.cliente?.rejection_reasons || query.rejection_reasons || []
-  const error_message = recommendations?.cliente?.error_message || query.error_message || null
+  const eligible = recommendations?.eligible || []
+  const not_eligible = recommendations?.not_eligible || []
+  const scoreX10 = recommendations?.client?.score_x10 ?? null
+  const rejection_reasons = recommendations?.client?.rejection_reasons || query.rejection_reasons || []
+  const error_message = recommendations?.client?.error_message || query.error_message || null
 
   return (
     <DialogRoot open={open} onOpenChange={onOpenChange}>
@@ -208,28 +208,28 @@ function RecommendationsDialog({ open, onOpenChange, query, recommendations, isL
                 <div className="flex items-center gap-2 mb-2">
                   <Sparkles className="size-4 text-primary" />
                   <h4 className="font-semibold">Productos recomendados</h4>
-                  <span className="text-xs text-muted-foreground">({elegibles.length})</span>
+                  <span className="text-xs text-muted-foreground">({eligible.length})</span>
                 </div>
-                {elegibles.length === 0 ? (
+                {eligible.length === 0 ? (
                   <p className="text-sm text-muted-foreground rounded-xl border border-dashed p-4 text-center">
                     Ningún producto coincide con el score del cliente.
                   </p>
                 ) : (
                   <div className="space-y-2">
-                    {elegibles.map(p => <ProductRow key={p.producto_id} product={p} disabled={false} />)}
+                    {eligible.map(p => <ProductRow key={p.product_id} product={p} disabled={false} />)}
                   </div>
                 )}
               </div>
 
-              {no_elegibles.length > 0 && (
+              {not_eligible.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <Ban className="size-4 text-muted-foreground" />
                     <h4 className="font-semibold text-muted-foreground">No aplicables para este perfil</h4>
-                    <span className="text-xs text-muted-foreground">({no_elegibles.length})</span>
+                    <span className="text-xs text-muted-foreground">({not_eligible.length})</span>
                   </div>
                   <div className="space-y-2">
-                    {no_elegibles.map(p => <ProductRow key={p.producto_id} product={p} disabled />)}
+                    {not_eligible.map(p => <ProductRow key={p.product_id} product={p} disabled />)}
                   </div>
                 </div>
               )}
@@ -281,7 +281,7 @@ export default function SimulationsPage() {
     setRecommendations(null)
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_SIMULATIONS_API_URL}/recomendaciones?task_id=${encodeURIComponent(taskId)}`,
+        `${import.meta.env.VITE_SIMULATIONS_API_URL}/recommendations?task_id=${encodeURIComponent(taskId)}`,
         { headers: authHeaders() }
       )
       if (!res.ok) {

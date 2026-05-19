@@ -5,13 +5,13 @@ const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb');
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: 'us-east-1' }));
-const TABLE = process.env.DYNAMODB_PRODUCTO_TABLE;
+const TABLE = process.env.DYNAMODB_PRODUCT_TABLE;
 
 function respond(statusCode, body) {
   return { statusCode, body: JSON.stringify(body) };
 }
 
-const REQUIRED_FIELDS = ['nombre', 'monto', 'cuotas', 'interes', 'min_score', 'max_score', 'prioridad'];
+const REQUIRED_FIELDS = ['name', 'amount', 'installments', 'interest', 'min_score', 'max_score', 'priority'];
 
 exports.handler = async (event) => {
 
@@ -26,19 +26,19 @@ exports.handler = async (event) => {
   if (missing.length > 0) return respond(400, { error: `Missing required fields: ${missing.join(', ')}` });
 
   try {
-    const { nombre, monto, cuotas, interes, min_score, max_score, prioridad } = body;
+    const { name, amount, installments, interest, min_score, max_score, priority } = body;
 
     if (min_score > max_score) {
       return respond(400, { error: 'min_score cannot be greater than max_score' });
     }
 
-    if (!Number.isInteger(prioridad) || prioridad < 1 || prioridad > 10) {
-      return respond(400, { error: 'prioridad must be an integer between 1 and 10' });
+    if (!Number.isInteger(priority) || priority < 1 || priority > 10) {
+      return respond(400, { error: 'priority must be an integer between 1 and 10' });
     }
 
-    const plazo = body.plazo !== undefined ? body.plazo : cuotas;
-    const producto_id = randomUUID();
-    const item = { sub, producto_id, nombre, monto, cuotas, interes, plazo, min_score, max_score, prioridad };
+    const term = body.term !== undefined ? body.term : installments;
+    const product_id = randomUUID();
+    const item = { sub, product_id, name, amount, installments, interest, term, min_score, max_score, priority };
 
     await ddb.send(new PutCommand({ TableName: TABLE, Item: item }));
     return respond(201, item);
