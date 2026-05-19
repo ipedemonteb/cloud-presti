@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Search, RefreshCw, Loader2, ChevronLeft, ChevronRight, Ban, Eye, Flag, Sparkles, AlertCircle } from 'lucide-react'
+import { Search, RefreshCw, Loader2, ChevronLeft, ChevronRight, Ban, Eye, Flag, Sparkles, AlertCircle, SearchX } from 'lucide-react'
 
 const TOKENS_KEY = 'cloud-dashboard-tokens'
 
@@ -56,14 +56,17 @@ function ScoreBadge({ score, estado }) {
   if (estado === 'error') {
     return <span className="text-sm text-destructive">Error</span>
   }
+  if (estado === 'sin_datos') {
+    return <span className="text-sm text-muted-foreground">Sin datos</span>
+  }
   if (estado === 'rechazado' || score === null || score === undefined) {
     return <span className="text-sm text-muted-foreground">-</span>
   }
   const multipliedScore = score * 10
   const color =
     multipliedScore >= 7 ? 'text-emerald-600' :
-    multipliedScore >= 5 ? 'text-amber-600' :
-                           'text-red-600'
+      multipliedScore >= 5 ? 'text-amber-600' :
+        'text-red-600'
   return <span className={`text-sm font-medium ${color}`}>{multipliedScore.toFixed(2)}</span>
 }
 
@@ -72,6 +75,7 @@ function EstadoBadge({ estado }) {
   if (estado === 'pendiente') return <Badge variant="outline" className="text-yellow-600 border-yellow-200 bg-yellow-50">Pendiente</Badge>
   if (estado === 'error') return <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50">Error</Badge>
   if (estado === 'rechazado') return <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50">Rechazado</Badge>
+  if (estado === 'sin_datos') return <Badge variant="outline" className="text-slate-600 border-slate-200 bg-slate-50">Sin datos</Badge>
   return <Badge variant="outline">{estado}</Badge>
 }
 
@@ -79,8 +83,8 @@ function PriorityBadge({ value }) {
   const v = Number(value ?? 0)
   const color =
     v >= 8 ? 'text-emerald-600 border-emerald-200 bg-emerald-50' :
-    v >= 5 ? 'text-blue-600 border-blue-200 bg-blue-50' :
-             'text-muted-foreground border-border bg-muted/40'
+      v >= 5 ? 'text-blue-600 border-blue-200 bg-blue-50' :
+        'text-muted-foreground border-border bg-muted/40'
   return (
     <Badge variant="outline" className={`gap-1 ${color}`}>
       <Flag className="size-3" />
@@ -130,8 +134,9 @@ function RecommendationsDialog({ open, onOpenChange, query, recommendations, isL
             {estado === 'completado' && scoreX10 !== null && (
               <>Score del cliente: <span className="font-semibold text-foreground">{scoreX10.toFixed(2)}</span> / 10</>
             )}
-            {estado === 'rechazado' && 'Cliente descartado por la política general de la fintech.'}
-            {estado === 'error' && 'La simulación falló por un error técnico.'}
+            {query.estado === 'rechazado' && 'Cliente descartado por la política general de la fintech.'}
+            {query.estado === 'error' && 'La simulación falló por un error técnico.'}
+            {query.estado === 'sin_datos' && 'No hay información crediticia disponible para este CUIT.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -185,7 +190,19 @@ function RecommendationsDialog({ open, onOpenChange, query, recommendations, isL
             </div>
           )}
 
-          {!isLoading && !error && estado === 'completado' && (
+          {query.estado === 'sin_datos' && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-900">
+              <div className="flex items-start gap-2">
+                <SearchX className="mt-0.5 size-4 shrink-0" />
+                <div className="space-y-1">
+                  <p className="font-medium">Sin historial crediticio</p>
+                  <p className="text-xs">{query.error_message || 'El CUIT consultado no posee registros suficientes en el BCRA para generar un score.'}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {query.estado === 'completado' && (
             <div className="space-y-4">
               <div>
                 <div className="flex items-center gap-2 mb-2">
@@ -217,16 +234,17 @@ function RecommendationsDialog({ open, onOpenChange, query, recommendations, isL
                 </div>
               )}
             </div>
-          )}
-        </div>
+          )
+          }
+        </div >
 
         <DialogFooter className="pt-4">
           <DialogClose asChild>
             <Button variant="outline">Cerrar</Button>
           </DialogClose>
         </DialogFooter>
-      </DialogContent>
-    </DialogRoot>
+      </DialogContent >
+    </DialogRoot >
   )
 }
 
@@ -316,6 +334,7 @@ export default function SimulationsPage() {
           if (q.status === 'COMPLETED') estado = 'completado'
           else if (q.status === 'FAILED') estado = 'error'
           else if (q.status === 'REJECTED') estado = 'rechazado'
+          else if (q.status === 'NO_DATA') estado = 'sin_datos'
 
           return {
             id: q.task_id,
@@ -447,7 +466,7 @@ export default function SimulationsPage() {
                 </TableRow>
               ) : (
                 paginatedQueries.map((q) => {
-                  const canOpen = q.estado === 'completado' || q.estado === 'rechazado' || q.estado === 'error'
+                  const canOpen = q.estado === 'completado' || q.estado === 'rechazado' || q.estado === 'error' || q.estado === 'sin_datos'
                   return (
                     <TableRow key={q.id}>
                       <TableCell className="font-mono text-sm font-medium">
