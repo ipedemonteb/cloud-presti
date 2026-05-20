@@ -203,7 +203,7 @@ locals {
       { principal = "apigateway.amazonaws.com", source_arn = "${aws_apigatewayv2_api.main.execution_arn}/*/*" }
     ]
     "portfolio-updater" = [
-      { principal = "events.amazonaws.com",    source_arn = aws_cloudwatch_event_rule.portfolio_updater.arn },
+      { principal = "events.amazonaws.com", source_arn = aws_cloudwatch_event_rule.portfolio_updater.arn },
       { principal = "apigateway.amazonaws.com", source_arn = "${aws_apigatewayv2_api.main.execution_arn}/*/*" },
     ]
   }
@@ -229,17 +229,17 @@ locals {
   }
 
   api_routes = {
-    "callback"              = { route_key = "GET /callback", integration = "auth-callback", auth = false }
-    "fintech-get"           = { route_key = "GET /fintech", integration = "fintech-get", auth = true }
-    "fintech-put"           = { route_key = "PUT /fintech", integration = "fintech-update", auth = true }
-    "product-get"           = { route_key = "GET /product", integration = "product-get", auth = true }
-    "product-post"          = { route_key = "POST /product", integration = "product-create", auth = true }
-    "product-put"           = { route_key = "PUT /product/{id}", integration = "product-update", auth = true }
-    "product-delete"        = { route_key = "DELETE /product/{id}", integration = "product-delete", auth = true }
-    "simulations-post"      = { route_key = "POST /simulations", integration = "simulations-handler", auth = true }
-    "simulations-get"       = { route_key = "GET /simulations", integration = "simulations-results", auth = true }
-    "recommendations-get"   = { route_key = "GET /recommendations", integration = "recommendations-get", auth = true }
-    "portfolio-get"         = { route_key = "GET /portfolio", integration = "portfolio-get", auth = true }
-    "portfolio-refresh"     = { route_key = "POST /portfolio/refresh", integration = "portfolio-updater", auth = true }
+    "callback"            = { route_key = "GET /callback", integration = "auth-callback", auth = false }
+    "fintech-get"         = { route_key = "GET /fintech", integration = "fintech-get", auth = true }
+    "fintech-put"         = { route_key = "PUT /fintech", integration = "fintech-update", auth = true }
+    "product-get"         = { route_key = "GET /product", integration = "product-get", auth = true }
+    "product-post"        = { route_key = "POST /product", integration = "product-create", auth = true }
+    "product-put"         = { route_key = "PUT /product/{id}", integration = "product-update", auth = true }
+    "product-delete"      = { route_key = "DELETE /product/{id}", integration = "product-delete", auth = true }
+    "simulations-post"    = { route_key = "POST /simulations", integration = "simulations-handler", auth = true }
+    "simulations-get"     = { route_key = "GET /simulations", integration = "simulations-results", auth = true }
+    "recommendations-get" = { route_key = "GET /recommendations", integration = "recommendations-get", auth = true }
+    "portfolio-get"       = { route_key = "GET /portfolio", integration = "portfolio-get", auth = true }
+    "portfolio-refresh"   = { route_key = "POST /portfolio/refresh", integration = "portfolio-updater", auth = true }
   }
 }
