@@ -1,4 +1,3 @@
-
 output "api_endpoint" {
   description = "Base URL of the HTTP API Gateway (consumed by the frontend as VITE_SIMULATIONS_API_URL and by Cognito as the OAuth callback host)"
   value       = aws_apigatewayv2_api.main.api_endpoint

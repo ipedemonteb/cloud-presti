@@ -2,9 +2,6 @@ name: Bootstrap Apply
 
 on:
   workflow_dispatch:
-
-# Bootstrap creates the state bucket and lock table — race conditions on these
-# would corrupt the backend for everyone, so we serialize.
 concurrency:
   group: bootstrap-apply
   cancel-in-progress: false
@@ -13,11 +10,6 @@ jobs:
   bootstrap:
     name: Bootstrap
     runs-on: ubuntu-latest
-
-    # STACK_NAME is the single GitHub variable that namespaces this deployment.
-    # Each developer sets it to a unique value (e.g. tincho-presti) and all
-    # other resource names (state bucket, lock table, frontend bucket) are
-    # derived from it by convention.
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

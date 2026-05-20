@@ -2,10 +2,6 @@ resource "aws_apigatewayv2_api" "main" {
   name          = "${var.stack_name}-api"
   protocol_type = "HTTP"
 
-  # CORS locked to the S3 frontend bucket plus any extra origins declared
-  # in var.cors_additional_origins (defaults to localhost:5173 for local
-  # `npm run dev` against this deployed API). Replaces the previous "*"
-  # which accepted every origin.
   cors_configuration {
     allow_origins = concat(
       ["http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"],
@@ -21,10 +17,6 @@ resource "aws_apigatewayv2_stage" "main" {
   name        = "$default"
   auto_deploy = true
 
-  # Stage-wide throttling. Protects the backend (Lambda has a 10-concurrent
-  # cap on this lab) and the budget against accidental hot loops or abusive
-  # clients. Per-route overrides could be added with aws_apigatewayv2_route
-  # settings if some endpoint needs a different limit.
   default_route_settings {
     throttling_rate_limit  = var.api_throttling_rate_limit
     throttling_burst_limit = var.api_throttling_burst_limit

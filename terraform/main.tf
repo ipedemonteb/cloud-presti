@@ -134,16 +134,6 @@ module "vpc" {
   ]
 }
 
-# Las 5 tablas DynamoDB se materializan a través del módulo externo
-# terraform-aws-modules/dynamodb-table/aws v5.5.0 (cumple el requisito del
-# TP3 sobre uso de al menos un módulo del registry público). El módulo
-# expone una API declarativa para hash/range key, attributes y GSIs.
-#
-# Nota: el módulo internamente sigue usando hash_key/range_key dentro del
-# bloque global_secondary_index, que el AWS provider 6.x marca como
-# deprecated en favor de key_schema. Es solo un warning (no error) y la
-# funcionalidad sigue intacta hasta que el módulo migre.
-
 module "dynamodb_simulations" {
   source  = "terraform-aws-modules/dynamodb-table/aws"
   version = "4.4.0"
@@ -159,13 +149,6 @@ module "dynamodb_simulations" {
     { name = "task_id", type = "S" },
   ]
 
-  # GSI para lookup directo por task_id (recommendations-get y
-  # simulations-results cuando se filtra por task_id). El sort key `sub`
-  # mantiene el aislamiento por tenant en la propia KeyCondition: una
-  # fintech sólo puede leer simulaciones de su propio sub aunque conozca
-  # el task_id de otra. Reemplaza el patrón anterior de Query por sub +
-  # FilterExpression task_id, que cobraba RCUs por todas las simulaciones
-  # de la fintech antes de filtrar.
   global_secondary_indexes = [
     {
       name            = "task-id-sub-index"
@@ -236,18 +219,6 @@ module "dynamodb_portfolio" {
     { name = "record_type", type = "S" },
   ]
 
-  # gsi1: relación inversa fintech -> cuit. Lo escribe simulations-handler
-  # en cada fila FINTECH#<sub>. Lo lee portfolio-get para listar los CUITs
-  # trackeados por una fintech.
-  #
-  # record-type-pk-index: sparse GSI usado por portfolio-updater para
-  # iterar SOLO los items INFO (uno por CUIT) sin tener que hacer Scan +
-  # FilterExpression sobre toda la tabla (que también incluye filas
-  # FINTECH#<sub> que no nos interesan en el cron). Sparse porque las filas
-  # FINTECH#<sub> no tienen el atributo record_type, así que ni aparecen
-  # en el índice. Hot partition asumida: el hash es siempre "INFO". Para
-  # el volumen del proyecto (cientos/miles de CUITs) está dentro de los
-  # 3000 RCU por partición.
   global_secondary_indexes = [
     {
       name            = "gsi1"
@@ -264,25 +235,19 @@ module "dynamodb_portfolio" {
   ]
 }
 
-
-# Pre-existing LabRole in AWS Academy (IAM roles cannot be created)
 data "aws_iam_role" "lab_role" {
   name = "LabRole"
 }
 
-
 resource "aws_sqs_queue" "main_dlq" {
   name                      = "${var.stack_name}-simulations-queue-dlq"
-  message_retention_seconds = 1209600 # 14 days, the SQS maximum.
+  message_retention_seconds = 1209600 # 14 days
 }
 
 resource "aws_sqs_queue" "main" {
   name                       = "${var.stack_name}-simulations-queue"
   visibility_timeout_seconds = var.sqs_visibility_timeout_seconds
 
-  # After `sqs_max_receive_count` failed delivery attempts, SQS moves the
-  # message to the DLQ instead of dropping it. Lets us inspect what failed
-  # (which CUIT, which task_id, what timestamp) without losing the payload.
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.main_dlq.arn
     maxReceiveCount     = var.sqs_max_receive_count

@@ -35,18 +35,12 @@ resource "aws_lambda_event_source_mapping" "simulations_engine" {
   batch_size       = 1
 }
 
-# Explicit log groups for every Lambda function so we can pin a retention
-# policy. Without this resource, AWS Lambda lazy-creates the log group on
-# first invocation with retention "never expire", which bleeds the lab
-# budget over time.
-
 resource "aws_cloudwatch_log_group" "lambdas" {
   for_each = toset(concat(keys(local.lambda_configs), ["auth-callback"]))
 
   name              = "/aws/lambda/${var.stack_name}-${each.key}"
   retention_in_days = var.lambda_log_retention_days
 }
-
 
 resource "aws_lambda_function" "lambdas" {
   for_each         = local.lambda_configs
@@ -67,10 +61,6 @@ resource "aws_lambda_function" "lambdas" {
     }
   }
 
-  # Dead letter target for async invocations (EventBridge, SNS, etc.). Opt-in
-  # per Lambda via local.lambda_async_dlq_arns. Sync invokers (API Gateway,
-  # Cognito triggers, SQS pollers) ignore this — they have their own retry /
-  # DLQ paths.
   dynamic "dead_letter_config" {
     for_each = lookup(local.lambda_async_dlq_arns, each.key, null) != null ? [1] : []
     content {
@@ -82,9 +72,6 @@ resource "aws_lambda_function" "lambdas" {
     variables = each.value.env_vars
   }
 
-  # Ensure the log group with retention exists before the Lambda runs, so the
-  # first invocation reuses our pre-created log group instead of AWS lazily
-  # creating one with retention "never expire".
   depends_on = [aws_cloudwatch_log_group.lambdas]
 }
 
@@ -102,13 +89,6 @@ resource "aws_cloudwatch_event_target" "portfolio_updater_target" {
   rule      = aws_cloudwatch_event_rule.portfolio_updater.name
   target_id = "portfolio_updater"
   arn       = aws_lambda_function.lambdas["portfolio-updater"].arn
-
-  # If EventBridge cannot deliver the event to the Lambda (e.g. Lambda is
-  # throttled by the lab's 10-concurrent cap, briefly missing during a
-  # redeploy, or transient AWS issues), retry for up to an hour and then
-  # drop the event into the shared DLQ. This is independent from the Lambda
-  # async DLQ (local.lambda_async_dlq_arns) which catches failures *during*
-  # Lambda execution — both layers together cover the full failure surface.
   retry_policy {
     maximum_retry_attempts       = 3
     maximum_event_age_in_seconds = 3600
