@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
 
     # STACK_NAME is the single GitHub variable that namespaces this deployment.
-    # Each developer sets it to a unique value (e.g. tincho-presti) and the
+    # Each developer sets it to a unique value (e.g. cloud-presti) and the
     # state bucket, lock table, frontend bucket and TF stack_name are derived
     # from it by convention.
     env:

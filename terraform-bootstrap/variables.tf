@@ -5,7 +5,7 @@ variable "region" {
 }
 
 variable "stack_name" {
-  description = "Unique prefix that namespaces the state bucket / lock table tags. Each developer of the team uses their own value (e.g. tincho-presti) so resources are attributable per-deployment in Cost Explorer / Resource Groups."
+  description = "Unique prefix that namespaces the state bucket / lock table tags. Each developer of the team uses their own value (e.g. cloud-presti) so resources are attributable per-deployment in Cost Explorer / Resource Groups."
   type        = string
   default     = "cloud-presti"
 }

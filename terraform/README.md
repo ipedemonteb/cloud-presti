@@ -31,7 +31,7 @@ Todas con defaults razonables — solo `bucket_name` es estrictamente requerida 
 
 | Variable | Default | Propósito |
 |---|---|---|
-| `stack_name` | `cloud-presti` | Prefijo de **todos** los nombres de recursos y tags. Cada integrante del equipo usa su propio valor (ej `tincho-presti`) para que deploys paralelos no choquen. |
+| `stack_name` | `cloud-presti` | Prefijo de **todos** los nombres de recursos y tags. Cada integrante del equipo usa su propio valor (ej `cloud-presti`) para que deploys paralelos no choquen. |
 | `aws_region` | `us-east-1` | Región. El lab solo permite `us-east-1` y `us-west-2`. |
 | `bucket_name` | — (requerida) | Nombre globalmente único del bucket S3 del frontend. Convención: `${stack_name}-frontend-bucket`. |
 | `environment` | `lab` | Valor del tag `Environment`. |

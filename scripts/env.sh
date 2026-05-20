@@ -2,7 +2,7 @@
 if [ -z "${STACK_NAME:-}" ]; then
   echo "Missing required env var: STACK_NAME"
   echo "Export it before running this script:"
-  echo "  export STACK_NAME=<your-prefix>   # e.g. tincho-presti"
+  echo "  export STACK_NAME=<your-prefix>   # e.g. cloud-presti"
   exit 1
 fi
 
