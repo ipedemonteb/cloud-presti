@@ -347,6 +347,8 @@ Se recomienda definir al menos dos productos con rangos solapados y prioridades 
 
 ### 8.4 Ejecución de una simulación
 
+> **Importante**: antes de ejecutar la primera simulación es necesario haber dado de alta al menos un producto (sección 8.3). Sin productos, la consulta de recomendaciones (sección 8.5) devuelve listas vacías porque no hay nada que rankear contra el score del cliente.
+
 En **Simulaciones → Nueva simulación**, ingresar un CUIT.
 
 Flujo:

@@ -13,7 +13,10 @@
 # can be overridden by exporting TF_VAR_aws_region. Individual overrides via
 # TF_STATE_BUCKET etc are also honored if already exported.
 
-if [ -z "$STACK_NAME" ]; then
+# `${VAR:-}` para que el check sea compatible con `set -u` en el script
+# que sourcea este archivo: sin el `:-` la expansión de una STACK_NAME no
+# definida romperia antes de llegar al test.
+if [ -z "${STACK_NAME:-}" ]; then
   echo "Missing required env var: STACK_NAME"
   echo "Export it before running this script:"
   echo "  export STACK_NAME=<your-prefix>   # e.g. tincho-presti"

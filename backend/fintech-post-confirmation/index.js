@@ -6,7 +6,10 @@ const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb');
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const TABLE = process.env.DYNAMODB_FINTECH_TABLE;
 
+// Espejado en fintech-get/index.js (fallback lazy del seed). Si se modifica,
+// actualizar ambos lugares.
 const DEFAULT_FINTECH_ROW = {
+  fintech_name: 'Nueva Fintech',
   max_situacion_crediticia: 2,
   max_entidades_con_deuda: 3,
   max_deuda_total_ars: 350000,

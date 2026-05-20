@@ -6,11 +6,15 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 const TABLE_NAME = process.env.DYNAMODB_PORTFOLIO_TABLE;
 
+// Headers CORS los inyecta API Gateway (cors_configuration en api-gateway.tf);
+// si los devolvemos desde el Lambda pisan la config del gateway.
+const headers = { "Content-Type": "application/json" };
+
 exports.handler = async (event) => {
     try {
         const sub = event.requestContext?.authorizer?.jwt?.claims?.sub;
         if (!sub) {
-            return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
+            return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
         }
 
         const queryParams = event.queryStringParameters || {};
@@ -20,11 +24,6 @@ exports.handler = async (event) => {
 
         let trackedItems = [];
         let lastEvaluatedKey = null;
-
-        const headers = {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*"
-        };
 
         // Single-cuit lookup uses the composite key (CUIT, FINTECH#<sub>) so a
         // fintech can only retrieve cuits it has previously tracked — there is
@@ -119,8 +118,8 @@ exports.handler = async (event) => {
         console.error("Error in portfolio-get:", error);
         return {
             statusCode: 500,
-            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-            body: JSON.stringify({ error: "Internal Server Error" })
+            headers,
+            body: JSON.stringify({ error: "Internal Server Error", message: error.message })
         };
     }
 };

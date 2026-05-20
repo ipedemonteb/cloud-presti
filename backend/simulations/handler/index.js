@@ -10,23 +10,20 @@ const DYNAMODB_TABLE = process.env.DYNAMODB_TABLE_NAME;
 const DYNAMODB_USER_TABLE = process.env.DYNAMODB_USER_TABLE;
 const DYNAMODB_PORTFOLIO_TABLE = process.env.DYNAMODB_PORTFOLIO_TABLE;
 
+// Los headers CORS los inyecta API Gateway (cors_configuration en
+// api-gateway.tf) cuando vienen de un origin permitido. No los devolvemos
+// desde el Lambda porque, en HTTP API v2, los headers de la integración
+// pisan los del cors_configuration y un "*" hardcodeado anularía la
+// restricción del gateway. Lo mismo aplica al preflight OPTIONS: HTTP API
+// v2 lo responde solo, no necesita route ni handler propio.
+const headers = { "Content-Type": "application/json" };
+
 exports.handler = async (event) => {
     try {
         console.log("Event received:", JSON.stringify(event));
 
-        // In API Gateway v2, the method is in requestContext.http.method
         const httpMethod = event.requestContext?.http?.method || event.httpMethod;
         const body = event.body;
-
-        const headers = {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Headers": "Content-Type,Authorization",
-            "Access-Control-Allow-Methods": "OPTIONS,POST"
-        };
-
-        if (httpMethod === 'OPTIONS') {
-            return { statusCode: 200, headers, body: '' };
-        }
 
         if (httpMethod === 'POST') {
             if (!body) {
@@ -83,11 +80,17 @@ exports.handler = async (event) => {
                             Update: {
                                 TableName: DYNAMODB_PORTFOLIO_TABLE,
                                 Key: { pk: { S: `CUIT#${cuit}` }, sk: { S: 'INFO' } },
-                                UpdateExpression: "SET current_status = if_not_exists(current_status, :s), previous_status = if_not_exists(previous_status, :s), trend = if_not_exists(trend, :t), last_updated = if_not_exists(last_updated, :lu)",
+                                // record_type se setea siempre (no if_not_exists) para que
+                                // el sparse GSI record-type-pk-index también capture items
+                                // INFO legados creados antes de existir el índice. Para
+                                // los demás campos preservamos el valor previo si ya estaba
+                                // (la fintech podría no ser la primera en trackear este CUIT).
+                                UpdateExpression: "SET current_status = if_not_exists(current_status, :s), previous_status = if_not_exists(previous_status, :s), trend = if_not_exists(trend, :t), last_updated = if_not_exists(last_updated, :lu), record_type = :rt",
                                 ExpressionAttributeValues: {
                                     ":s":  { S: "1" },
                                     ":t":  { S: "stable" },
-                                    ":lu": { S: timestamp }
+                                    ":lu": { S: timestamp },
+                                    ":rt": { S: "INFO" }
                                 }
                             }
                         },
@@ -161,12 +164,8 @@ exports.handler = async (event) => {
         console.error("API error:", error);
         return {
             statusCode: 500,
-            headers: { "Access-Control-Allow-Origin": "*" },
-            body: JSON.stringify({
-                error: "Error interno del servidor",
-                message: error.message,
-                stack: error.stack
-            })
+            headers,
+            body: JSON.stringify({ error: "Error interno del servidor", message: error.message })
         };
     }
 };

@@ -83,6 +83,11 @@ resource "aws_lambda_function" "auth_callback" {
       COGNITO_CLIENT_SECRET_ID = aws_secretsmanager_secret.cognito_client_secret.id
       COGNITO_DOMAIN           = "https://${aws_cognito_user_pool_domain.main.domain}.auth.${var.aws_region}.amazoncognito.com"
       FRONTEND_URL             = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
+      # Inyectado para que el Lambda no tenga que reconstruirlo del Host
+      # header del request (que un proxy podría forjar). Tiene que coincidir
+      # con uno de los callback_urls registrados en el Cognito client de
+      # arriba; lo derivamos del mismo recurso para que se mantengan en sync.
+      CALLBACK_URL = "${aws_apigatewayv2_api.main.api_endpoint}/callback"
     }
   }
 

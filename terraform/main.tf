@@ -128,93 +128,155 @@ module "vpc" {
   ]
 }
 
-module "dynamodb_simulations" {
-  source  = "terraform-aws-modules/dynamodb-table/aws"
-  version = "4.4.0"
-
-  name      = "${var.stack_name}-simulations"
-  hash_key  = "sub"
-  range_key = "sk"
-
-  attributes = [
-    { name = "sub", type = "S" },
-    { name = "sk", type = "S" },
-  ]
-
+resource "aws_dynamodb_table" "simulations" {
+  name         = "${var.stack_name}-simulations"
   billing_mode = var.dynamodb_billing_mode
-}
+  hash_key     = "sub"
+  range_key    = "sk"
 
-module "dynamodb_fintech" {
-  source  = "terraform-aws-modules/dynamodb-table/aws"
-  version = "4.4.0"
+  attribute {
+    name = "sub"
+    type = "S"
+  }
+  attribute {
+    name = "sk"
+    type = "S"
+  }
+  attribute {
+    name = "task_id"
+    type = "S"
+  }
 
-  name     = "${var.stack_name}-fintech"
-  hash_key = "sub"
+  # GSI para lookup directo por task_id (recommendations-get y
+  # simulations-results cuando se filtra por task_id). El sort key `sub`
+  # mantiene el aislamiento por tenant en la propia KeyCondition: una
+  # fintech sólo puede leer simulaciones de su propio sub aunque conozca
+  # el task_id de otra. Reemplaza el patrón anterior de Query por sub +
+  # FilterExpression task_id, que cobraba RCUs por todas las simulaciones
+  # de la fintech antes de filtrar.
+  global_secondary_index {
+    name            = "task-id-sub-index"
+    projection_type = "ALL"
 
-  attributes = [
-    { name = "sub", type = "S" },
-  ]
-
-  billing_mode = var.dynamodb_billing_mode
-}
-
-module "dynamodb_product" {
-  source  = "terraform-aws-modules/dynamodb-table/aws"
-  version = "4.4.0"
-
-  name      = "${var.stack_name}-product"
-  hash_key  = "sub"
-  range_key = "product_id"
-
-  attributes = [
-    { name = "sub", type = "S" },
-    { name = "product_id", type = "S" },
-  ]
-
-  billing_mode = var.dynamodb_billing_mode
-}
-
-module "dynamodb_user" {
-  source  = "terraform-aws-modules/dynamodb-table/aws"
-  version = "4.4.0"
-
-  name      = "${var.stack_name}-user"
-  hash_key  = "sub"
-  range_key = "cuit"
-
-  attributes = [
-    { name = "sub", type = "S" },
-    { name = "cuit", type = "S" },
-  ]
-
-  billing_mode = var.dynamodb_billing_mode
-}
-
-module "dynamodb_portfolio" {
-  source  = "terraform-aws-modules/dynamodb-table/aws"
-  version = "4.4.0"
-
-  name      = "${var.stack_name}-portfolio"
-  hash_key  = "pk"
-  range_key = "sk"
-
-  attributes = [
-    { name = "pk", type = "S" },
-    { name = "sk", type = "S" },
-    { name = "gsi1_pk", type = "S" },
-    { name = "gsi1_sk", type = "S" },
-  ]
-
-  global_secondary_indexes = [
-    {
-      name            = "gsi1"
-      hash_key        = "gsi1_pk"
-      range_key       = "gsi1_sk"
-      projection_type = "ALL"
+    key_schema {
+      attribute_name = "task_id"
+      key_type       = "HASH"
     }
-  ]
+    key_schema {
+      attribute_name = "sub"
+      key_type       = "RANGE"
+    }
+  }
+}
 
+resource "aws_dynamodb_table" "fintech" {
+  name         = "${var.stack_name}-fintech"
   billing_mode = var.dynamodb_billing_mode
+  hash_key     = "sub"
+
+  attribute {
+    name = "sub"
+    type = "S"
+  }
+}
+
+resource "aws_dynamodb_table" "product" {
+  name         = "${var.stack_name}-product"
+  billing_mode = var.dynamodb_billing_mode
+  hash_key     = "sub"
+  range_key    = "product_id"
+
+  attribute {
+    name = "sub"
+    type = "S"
+  }
+  attribute {
+    name = "product_id"
+    type = "S"
+  }
+}
+
+resource "aws_dynamodb_table" "user" {
+  name         = "${var.stack_name}-user"
+  billing_mode = var.dynamodb_billing_mode
+  hash_key     = "sub"
+  range_key    = "cuit"
+
+  attribute {
+    name = "sub"
+    type = "S"
+  }
+  attribute {
+    name = "cuit"
+    type = "S"
+  }
+}
+
+resource "aws_dynamodb_table" "portfolio" {
+  name         = "${var.stack_name}-portfolio"
+  billing_mode = var.dynamodb_billing_mode
+  hash_key     = "pk"
+  range_key    = "sk"
+
+  attribute {
+    name = "pk"
+    type = "S"
+  }
+  attribute {
+    name = "sk"
+    type = "S"
+  }
+  attribute {
+    name = "gsi1_pk"
+    type = "S"
+  }
+  attribute {
+    name = "gsi1_sk"
+    type = "S"
+  }
+  attribute {
+    name = "record_type"
+    type = "S"
+  }
+
+  # gsi1: relación inversa fintech -> cuit. Lo escribe simulations-handler
+  # en cada fila FINTECH#<sub>. Lo lee portfolio-get para listar los CUITs
+  # trackeados por una fintech.
+  global_secondary_index {
+    name            = "gsi1"
+    projection_type = "ALL"
+
+    key_schema {
+      attribute_name = "gsi1_pk"
+      key_type       = "HASH"
+    }
+    key_schema {
+      attribute_name = "gsi1_sk"
+      key_type       = "RANGE"
+    }
+  }
+
+  # record-type-pk-index: sparse GSI usado por portfolio-updater para
+  # iterar SOLO los items INFO (uno por CUIT) sin tener que hacer Scan +
+  # FilterExpression sobre toda la tabla (que también incluye filas
+  # FINTECH#<sub> que no nos interesan en el cron). Sparse porque las filas
+  # FINTECH#<sub> no tienen el atributo record_type, así que ni aparecen
+  # en el índice. Hot partition asumida: el hash es siempre "INFO". Para
+  # el volumen del proyecto (cientos/miles de CUITs) está dentro de los
+  # 3000 RCU por partición.
+  global_secondary_index {
+    name            = "record-type-pk-index"
+    projection_type = "ALL"
+
+    key_schema {
+      attribute_name = "record_type"
+      key_type       = "HASH"
+    }
+    key_schema {
+      attribute_name = "pk"
+      key_type       = "RANGE"
+    }
+  }
 }
 
 
