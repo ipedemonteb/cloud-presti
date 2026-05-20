@@ -48,46 +48,46 @@ cloud-presti/
 
 ## Guía de Instalación y Despliegue
 
-Este proyecto está completamente automatizado para ser desplegado y gestionado utilizando **GitHub Actions**. Sigue estos pasos para configurar tu repositorio y levantar la infraestructura en AWS:
+Este proyecto está completamente automatizado para ser desplegado y gestionado utilizando **GitHub Actions**. Se deben seguir los siguientes pasos para configurar el repositorio y levantar la infraestructura en AWS:
 
 ### Paso 1: Configurar Secretos y Variables en GitHub
-Antes de ejecutar cualquier pipeline, debes definir los accesos a AWS y el espacio de nombres de tu stack en la configuración de tu repositorio de GitHub:
+Antes de ejecutar cualquier pipeline, se requiere definir los accesos a AWS y el espacio de nombres del stack en la configuración del repositorio de GitHub:
 
-1. Ve a **Settings (Configuración) → Secrets and variables → Actions** en tu repositorio de GitHub.
-2. En la pestaña **Secrets** (Secretos), crea los siguientes secretos:
-   * `AWS_ACCESS_KEY_ID`: Tu ID de clave de acceso de AWS.
-   * `AWS_SECRET_ACCESS_KEY`: Tu clave de acceso secreta de AWS.
-   * `AWS_SESSION_TOKEN`: Tu token de sesión temporal (si utilizas AWS Academy o credenciales temporales).
-3. En la pestaña **Variables**, crea la siguiente variable:
-   * `STACK_NAME`: El nombre único que identificará tu stack (por ejemplo, `cloud-presti`). Todos los recursos aprovisionados (buckets S3, tablas DynamoDB, Cognito User Pool, etc.) utilizarán este valor como prefijo para evitar colisiones.
+1. Ingresar a **Settings (Configuración) → Secrets and variables → Actions** dentro del repositorio de GitHub.
+2. En la pestaña **Secrets** (Secretos), se deben crear los siguientes secretos:
+   * `AWS_ACCESS_KEY_ID`: ID de clave de acceso de AWS.
+   * `AWS_SECRET_ACCESS_KEY`: Clave de acceso secreta de AWS.
+   * `AWS_SESSION_TOKEN`: Token de sesión temporal (necesario si se utiliza AWS Academy o credenciales temporales).
+3. En la pestaña **Variables**, se debe crear la siguiente variable:
+   * `STACK_NAME`: Nombre único que identificará al stack (por ejemplo, `cloud-presti`). Todos los recursos aprovisionados (buckets S3, tablas DynamoDB, Cognito User Pool, etc.) utilizarán este valor como prefijo para evitar colisiones.
 
 ### Paso 2: Ejecutar el Bootstrap
 El Bootstrap se encarga de crear el bucket de S3 y la tabla DynamoDB que almacenarán de forma remota y segura el estado de Terraform (`terraform.tfstate`) y gestionarán el bloqueo de concurrencia.
-1. Ve a la pestaña **Actions** en GitHub.
-2. En la barra lateral izquierda, selecciona el workflow **Bootstrap Apply**.
-3. Haz clic en **Run workflow** (Ejecutar workflow) seleccionando la rama `main` y presiona el botón verde para confirmar.
-4. Espera a que el pipeline finalice exitosamente. Esto creará el bucket `${STACK_NAME}-state-bucket` y la tabla DynamoDB `${STACK_NAME}-lock-table`.
+1. Dirigirse a la pestaña **Actions** en GitHub.
+2. En la barra lateral izquierda, seleccionar el workflow **Bootstrap Apply**.
+3. Hacer clic en **Run workflow** (Ejecutar workflow) seleccionando la rama `main` y presionar el botón verde para confirmar.
+4. Esperar a que el pipeline finalice exitosamente. Esto creará el bucket `${STACK_NAME}-state-bucket` y la tabla DynamoDB `${STACK_NAME}-lock-table`.
 
 ### Paso 3: Desplegar la Infraestructura y el Frontend
-Una vez completado el bootstrap, puedes proceder con el aprovisionamiento de la arquitectura principal y el despliegue del panel de control web.
-1. En la pestaña **Actions**, selecciona el workflow **Terraform Apply**.
-2. Haz clic en **Run workflow**, selecciona la rama `main` y presiona el botón verde.
+Una vez completado el bootstrap, se puede proceder con el aprovisionamiento de la arquitectura principal y el despliegue del panel de control web.
+1. En la pestaña **Actions**, seleccionar el workflow **Terraform Apply**.
+2. Hacer clic en **Run workflow**, seleccionar la rama `main` y presionar el botón verde.
 3. Este pipeline ejecutará de forma automática los siguientes pasos secuenciales:
-   * **Instalación de dependencias**: Descarga y compila las dependencias de todas las Lambdas.
-   * **Validación y Plan de Terraform**: Genera y valida de forma estricta el plan de ejecución de infraestructura.
-   * **Terraform Apply**: Aprovisiona de forma segura todos los recursos en la nube de AWS (red VPC, DynamoDB, Lambdas, SQS, API Gateway, Cognito).
-   * **Compilación del Frontend**: Inyecta dinámicamente las variables de entorno producidas por Terraform (como el endpoint de API Gateway y el ID de cliente de Cognito) en un archivo `.env.production` en React.
-   * **Despliegue Web**: Compila la SPA de React y sincroniza los archivos construidos al bucket S3 de hosting web.
-4. Al finalizar, en la salida del workflow o en los outputs de Terraform podrás encontrar el endpoint de API Gateway y la URL pública de la aplicación para comenzar a utilizarla.
+   * **Instalación de dependencias**: Se descargan y compilan las dependencias de todas las Lambdas.
+   * **Validación y Plan de Terraform**: Se genera y valida de forma estricta el plan de ejecución de infraestructura.
+   * **Terraform Apply**: Se aprovisionan de forma segura todos los recursos en la nube de AWS (red VPC, DynamoDB, Lambdas, SQS, API Gateway, Cognito).
+   * **Compilación del Frontend**: Se inyectan dinámicamente las variables de entorno producidas por Terraform (como el endpoint de API Gateway y el ID de cliente de Cognito) en un archivo `.env.production` en React.
+   * **Despliegue Web**: Se compila la SPA de React y se sincronizan los archivos construidos con el bucket S3 de hosting web.
+4. Al finalizar, en la salida del workflow o en los outputs de Terraform se podrán encontrar el endpoint de API Gateway y la URL pública de la aplicación para comenzar con su utilización.
 
 ---
 
 ### Mantenimiento y Destrucción del Stack (Opcional)
-Si necesitas limpiar y eliminar por completo toda la infraestructura creada para no incurrir en costos continuos:
-1. En la pestaña **Actions**, selecciona el workflow **Terraform Destroy**.
-2. Haz clic en **Run workflow**.
-3. En el campo de confirmación requerido, escribe exactamente la palabra `destroy`.
-4. Presiona el botón verde de ejecución. El pipeline vaciará de manera segura el bucket S3 del frontend y destruirá absolutamente todos los recursos de AWS asociados al stack.
+En caso de requerir la limpieza y eliminación completa de toda la infraestructura creada para evitar costos continuos:
+1. En la pestaña **Actions**, seleccionar el workflow **Terraform Destroy**.
+2. Hacer clic en **Run workflow**.
+3. En el campo de confirmación requerido, escribir exactamente la palabra `destroy`.
+4. Presionar el botón verde de ejecución. El pipeline vaciará de manera segura el bucket S3 del frontend y destruirá absolutamente todos los recursos de AWS asociados al stack.
 
 <p align="right">(<a href="#presti---cloud-computing">Volver</a>)</p>
 
