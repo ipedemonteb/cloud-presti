@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Search, RefreshCw, Loader2, ChevronLeft, ChevronRight, Ban, Eye, Flag, Sparkles, AlertCircle, SearchX } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Search, RefreshCw, Loader2, ChevronLeft, ChevronRight, Ban, Eye, Flag, Sparkles, AlertCircle, SearchX, Package } from 'lucide-react'
 
 const TOKENS_KEY = 'cloud-dashboard-tokens'
 
@@ -249,6 +250,7 @@ function RecommendationsDialog({ open, onOpenChange, query, recommendations, isL
 }
 
 export default function SimulationsPage() {
+  const navigate = useNavigate()
   const [cuit, setCuit] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -258,11 +260,23 @@ export default function SimulationsPage() {
   const [isLoadingRecs, setIsLoadingRecs] = useState(false)
   const [recsError, setRecsError] = useState('')
   const [page, setPage] = useState(1)
+  const [hasProducts, setHasProducts] = useState(null) // null = loading
   const PAGE_SIZE = 10
   const totalPages = Math.ceil(queries.length / PAGE_SIZE)
   const paginatedQueries = queries.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   useEffect(() => {
+    async function checkProducts() {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_SIMULATIONS_API_URL}/product`, { headers: authHeaders() })
+        if (!res.ok) throw new Error()
+        const data = await res.json()
+        setHasProducts(Array.isArray(data) ? data.length > 0 : true)
+      } catch {
+        setHasProducts(true) // si falla, no bloqueamos
+      }
+    }
+    checkProducts()
     handleRefresh()
   }, [])
 
@@ -360,6 +374,34 @@ export default function SimulationsPage() {
   const handleCuitChange = (e) => {
     const val = e.target.value.replace(/\D/g, '').slice(0, 11)
     setCuit(val)
+  }
+
+  if (hasProducts === null) {
+    return (
+      <div className="flex h-full items-center justify-center p-8">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (!hasProducts) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-6 p-8 text-center">
+        <div className="flex size-16 items-center justify-center rounded-2xl bg-muted">
+          <Package className="size-8 text-muted-foreground" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold">Configurá tus productos primero</h2>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            Para poder simular el score crediticio de un cliente necesitás tener al menos un producto financiero configurado. El simulador lo usará para recomendar los productos disponibles.
+          </p>
+        </div>
+        <Button onClick={() => navigate('/dashboard/products')}>
+          <Package className="size-4" />
+          Ir a Productos
+        </Button>
+      </div>
+    )
   }
 
   return (

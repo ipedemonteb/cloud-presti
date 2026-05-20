@@ -2,9 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   ArrowDownCircle,
   ArrowUpCircle,
-  Calendar,
   CheckCircle,
-  Users,
   Search,
   Loader2,
   ChevronLeft,
@@ -114,10 +112,6 @@ export default function PortfolioPage() {
           <p className="text-muted-foreground">
             Seguimiento estático de cambios en la situación crediticia de CUIT/CUILs monitoreados.
           </p>
-        </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Calendar className="size-4" />
-          <span>Actualizado: hoy</span>
         </div>
       </div>
 
