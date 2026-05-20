@@ -4,7 +4,7 @@ Guía para desplegar la plataforma sobre AWS Academy y operarla desde el dashboa
 
 ## Acerca del proyecto
 
-Plataforma fintech que sugiere potenciales clientes a entidades financieras mediante un motor de scoring crediticio basado en datos del BCRA. Proyecto académico para la materia Cloud Computing (ITBA).
+Plataforma que sugiere productos propios de una Fintech para sus distintos clientes mediante un motor de scoring crediticio basado en datos del BCRA. Proyecto académico para la materia Cloud Computing (ITBA).
 
 ### Arquitectura general
 
