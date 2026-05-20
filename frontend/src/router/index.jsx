@@ -9,7 +9,6 @@ import { useAuth } from '@/store/AuthContext'
 
 const LandingPage = lazy(() => import('@/pages/LandingPage'))
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
-const CreateAccountPage = lazy(() => import('@/pages/CreateAccountPage'))
 const OnboardingPage = lazy(() => import('@/pages/OnboardingPage'))
 const ProductsPage = lazy(() => import('@/pages/dashboard/ProductsPage'))
 const ParametersPage = lazy(() => import('@/pages/dashboard/ParametersPage'))
@@ -61,16 +60,8 @@ export const router = createHashRouter([
     element: withSuspense(LoginPage),
   },
   {
-    path: '/create-account',
-    element: withSuspense(CreateAccountPage),
-  },
-  {
     path: '/onboarding',
     element: <OnboardingRoute>{withSuspense(OnboardingPage)}</OnboardingRoute>,
-  },
-  {
-    path: '/register',
-    element: <Navigate to="/create-account" replace />,
   },
   {
     path: '/dashboard',

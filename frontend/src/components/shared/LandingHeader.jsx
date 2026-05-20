@@ -16,27 +16,13 @@ export function LandingHeader() {
         <span className="text-2xl font-bold tracking-tight">presti</span>
 
         <nav className="hidden items-center gap-8 md:flex">
-          <button
+          {/* <button
             type="button"
             onClick={() => scrollToSection('features')}
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             Funcionalidades
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollToSection('about')}
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Nosotros
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollToSection('pricing')}
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Precios
-          </button>
+          </button> */}
         </nav>
 
         <div className="flex items-center gap-3">

@@ -1,11 +1,9 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LandingAbout } from '@/components/shared/LandingAbout'
 import { LandingFeatures } from '@/components/shared/LandingFeatures'
 import { LandingFooter } from '@/components/shared/LandingFooter'
 import { LandingHeader } from '@/components/shared/LandingHeader'
 import { LandingHero } from '@/components/shared/LandingHero'
-import { LandingPricing } from '@/components/shared/LandingPricing'
 import { useAuth } from '@/store/AuthContext'
 
 export default function LandingPage() {
@@ -28,8 +26,6 @@ export default function LandingPage() {
       <main className="flex-1">
         <LandingHero />
         <LandingFeatures />
-        <LandingAbout />
-        {/*<LandingPricing />*/}
       </main>
       <LandingFooter />
     </div>
