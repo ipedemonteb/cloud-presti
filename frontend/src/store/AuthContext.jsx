@@ -12,12 +12,46 @@ function getStoredUser() {
   if (typeof window === 'undefined') return null
   if (MOCK) return MOCK_USER
 
-  const rawValue = window.localStorage.getItem(AUTH_STORAGE_KEY)
-  if (!rawValue) return null
+  const rawUser = window.localStorage.getItem(AUTH_STORAGE_KEY)
+  const rawTokens = window.localStorage.getItem(TOKENS_STORAGE_KEY)
+  
+  if (!rawUser || !rawTokens) {
+    try {
+      window.localStorage.removeItem(AUTH_STORAGE_KEY)
+      window.localStorage.removeItem(TOKENS_STORAGE_KEY)
+    } catch (e) {
+      // Ignorar fallas al intentar remover items del localStorage en entornos restringidos
+    }
+    return null
+  }
 
   try {
-    return JSON.parse(rawValue)
-  } catch {
+    const tokens = JSON.parse(rawTokens)
+    if (!tokens?.idToken) {
+      window.localStorage.removeItem(AUTH_STORAGE_KEY)
+      window.localStorage.removeItem(TOKENS_STORAGE_KEY)
+      return null
+    }
+
+    const decoded = jwtDecode(tokens.idToken)
+    const currentTime = Date.now() / 1000
+    
+    if (decoded.exp && decoded.exp < currentTime) {
+      console.warn('La sesión ha expirado (Token vencido).')
+      window.localStorage.removeItem(AUTH_STORAGE_KEY)
+      window.localStorage.removeItem(TOKENS_STORAGE_KEY)
+      return null
+    }
+
+    return JSON.parse(rawUser)
+  } catch (err) {
+    console.error('Error al validar la sesión almacenada:', err)
+    try {
+      window.localStorage.removeItem(AUTH_STORAGE_KEY)
+      window.localStorage.removeItem(TOKENS_STORAGE_KEY)
+    } catch (e) {
+      // Ignorar fallas al intentar remover items del localStorage en entornos restringidos
+    }
     return null
   }
 }
@@ -54,9 +88,9 @@ export function AuthProvider({ children }) {
         const data = await response.json()
         setFintechData(data || {})
       } else if (response.status === 404) {
-        setFintechData({}) // No tiene fintech aún
+        setFintechData({})
       } else {
-        setFintechData({ error: true }) // Marcar error para evitar reintentos infinitos
+        setFintechData({ error: true })
       }
     } catch (err) {
       console.error('Error fetching fintech:', err)
@@ -66,7 +100,6 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // Effect 1: Process tokens from hash
   useEffect(() => {
     const hash = window.location.hash
     if (hash && hash.includes('access_token=') && hash.includes('id_token=')) {
@@ -88,7 +121,6 @@ export function AuthProvider({ children }) {
           window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(payload))
           window.localStorage.setItem(TOKENS_STORAGE_KEY, JSON.stringify({ accessToken, idToken }))
 
-          // Limpiar el hash de tokens y redirigir al dashboard
           window.location.hash = '/dashboard'
           
           fetchFintech({ accessToken, idToken })
@@ -100,7 +132,6 @@ export function AuthProvider({ children }) {
     setIsReady(true)
   }, [])
 
-  // Effect 2: Fetch fintech if user is logged in but no data
   useEffect(() => {
     if (user && !fintechData && !isLoadingFintech) {
       fetchFintech()
