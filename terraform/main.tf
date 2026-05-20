@@ -131,6 +131,14 @@ module "vpc" {
       security_group_refs = ["interface-endpoints-sg"]
       private_dns_enabled = true
     },
+    {
+      name                = "logs"
+      service             = "com.amazonaws.${var.aws_region}.logs"
+      type                = "Interface"
+      subnets             = var.private_subnet_cidrs
+      security_group_refs = ["interface-endpoints-sg"]
+      private_dns_enabled = true
+    },
   ]
 }
 
