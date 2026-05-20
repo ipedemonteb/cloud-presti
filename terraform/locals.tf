@@ -120,6 +120,8 @@ locals {
         DYNAMODB_TABLE_NAME    = module.dynamodb_simulations.dynamodb_table_id
         DYNAMODB_FINTECH_TABLE = module.dynamodb_fintech.dynamodb_table_id
         SQS_QUEUE_URL          = aws_sqs_queue.main.url
+        MODEL_ARTIFACTS_BUCKET = aws_s3_bucket.model_artifacts.id
+        MODEL_ARTIFACTS_PREFIX = "v1/"
       }
     }
     "recommendations-get" = {

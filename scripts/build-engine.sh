@@ -21,16 +21,9 @@ uv pip install \
     --no-cache \
     -r "${ROOT_DIR}/backend/simulations/engine/requirements.txt"
 
-# 3. Copiar el código de la Lambda y los artefactos
-echo "Copiando código fuente y modelo..."
+# 3. Copiar el código de la Lambda
+echo "Copiando código fuente..."
 cp -r backend/simulations/engine/* "${BUILD_DIR}/"
-
-echo "Copiando artefactos del modelo..."
-mkdir -p "${BUILD_DIR}/artifacts"
-cp engine/artifacts/modelo_crediticio.tflite "${BUILD_DIR}/artifacts/"
-cp engine/artifacts/scaler_params.json "${BUILD_DIR}/artifacts/"
-cp engine/artifacts/feature_columns.json "${BUILD_DIR}/artifacts/"
-cp engine/artifacts/feature_fill_values.json "${BUILD_DIR}/artifacts/"
 
 # 4. Limpieza para reducir tamaño
 echo "Ejecutando limpieza para bajar de 50MB..."

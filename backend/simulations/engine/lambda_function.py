@@ -26,9 +26,12 @@ _FILL_VALUES = None
 
 dynamodb = boto3.client('dynamodb')
 sqs = boto3.client('sqs')
+s3 = boto3.client('s3')
 DYNAMODB_TABLE         = os.environ.get('DYNAMODB_TABLE_NAME')
 DYNAMODB_FINTECH_TABLE = os.environ.get('DYNAMODB_FINTECH_TABLE')
 SQS_QUEUE_URL          = os.environ.get('SQS_QUEUE_URL')
+MODEL_ARTIFACTS_BUCKET = os.environ.get('MODEL_ARTIFACTS_BUCKET')
+MODEL_ARTIFACTS_PREFIX = os.environ.get('MODEL_ARTIFACTS_PREFIX', 'v1/')
 
 RETRY_DELAYS = [60, 120, 240, 480]
 
@@ -269,15 +272,22 @@ def cargar_artefactos():
     global _INTERPRETER, _SCALER_PARAMS, _FEATURE_COLUMNS, _FILL_VALUES
     if _INTERPRETER is not None:
         return
-        
-    print("Cargando artefactos en memoria (Cold Start)...")
-    artifacts_dir = Path(__file__).resolve().parent / "artifacts"
-    
-    _SCALER_PARAMS = _read_json(artifacts_dir / "scaler_params.json")
-    _INTERPRETER = tflite_interpreter(model_path=str(artifacts_dir / "modelo_crediticio.tflite"))
+
+    print("Cargando artefactos desde S3 (Cold Start)...")
+    tmp_dir = Path("/tmp/artifacts")
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    for name in ("modelo_crediticio.tflite", "scaler_params.json",
+                 "feature_columns.json", "feature_fill_values.json"):
+        local = tmp_dir / name
+        if not local.exists():
+            s3.download_file(MODEL_ARTIFACTS_BUCKET,
+                             f"{MODEL_ARTIFACTS_PREFIX}{name}", str(local))
+
+    _SCALER_PARAMS   = _read_json(tmp_dir / "scaler_params.json")
+    _INTERPRETER     = tflite_interpreter(model_path=str(tmp_dir / "modelo_crediticio.tflite"))
     _INTERPRETER.allocate_tensors()
-    _FEATURE_COLUMNS = _read_json(artifacts_dir / "feature_columns.json")
-    _FILL_VALUES = _read_json(artifacts_dir / "feature_fill_values.json")
+    _FEATURE_COLUMNS = _read_json(tmp_dir / "feature_columns.json")
+    _FILL_VALUES     = _read_json(tmp_dir / "feature_fill_values.json")
     print("Artefactos cargados.")
 
 def consultar_bcra(cuit: str) -> dict:
