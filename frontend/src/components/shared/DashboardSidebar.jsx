@@ -11,6 +11,16 @@ import {
 
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/store/AuthContext'
+import {
+  AlertDialogRoot,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
 
 const navigation = [
   { name: 'Productos', href: '/dashboard/products', icon: Package },
@@ -32,6 +42,7 @@ export function DashboardSidebar() {
   const navigate = useNavigate()
   const { user, fintechData, logout } = useAuth()
   const [collapsed, setCollapsed] = useState(getInitialCollapsedState)
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false)
   const showLabels = !collapsed
 
   const handleLogout = () => {
@@ -92,7 +103,7 @@ export function DashboardSidebar() {
       <div className="border-t p-4">
         <button
           type="button"
-          onClick={handleLogout}
+          onClick={() => setShowLogoutDialog(true)}
           className={cn(
             'flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
             collapsed && 'justify-center',
@@ -103,6 +114,23 @@ export function DashboardSidebar() {
           {showLabels ? <span>Cerrar sesion</span> : null}
         </button>
       </div>
+
+      <AlertDialogRoot open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Cerrar sesión?</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que deseas salir? Tendrás que volver a iniciar sesión para acceder al dashboard.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogout}>
+              Cerrar sesión
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialogRoot>
     </aside>
   )
 }
