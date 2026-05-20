@@ -8,7 +8,6 @@ bash "${SCRIPT_DIR}/install-lambdas.sh"
 bash "${SCRIPT_DIR}/terraform-init.sh"
 bash "${SCRIPT_DIR}/terraform-apply.sh"
 
-# --- Build y deploy del frontend a S3 ---
 TF_DIR="${SCRIPT_DIR}/../terraform"
 FRONTEND_DIR="${SCRIPT_DIR}/../frontend"
 

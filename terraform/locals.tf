@@ -1,4 +1,15 @@
 locals {
+  # Default Lambda configuration shared by every aws_lambda_function in the
+  # project (both the for_each map below and the standalone auth_callback in
+  # auth.tf, which can't join the map without a cycle through Cognito).
+  lambda_defaults = {
+    role        = data.aws_iam_role.lab_role.arn
+    handler     = "index.handler"
+    runtime     = var.lambda_node_runtime
+    timeout     = 30
+    memory_size = 256
+  }
+
   lambda_sources = {
     "fintech-post-confirmation" = "${path.root}/../backend/fintech-post-confirmation"
     "fintech-get"               = "${path.root}/../backend/fintech-get"
@@ -136,7 +147,7 @@ locals {
     }
     "portfolio-get" = {
       handler     = "index.handler"
-      runtime     = "nodejs20.x"
+      runtime     = var.lambda_node_runtime
       timeout     = 30
       memory_size = 256
       in_vpc      = true
@@ -146,7 +157,7 @@ locals {
     }
     "portfolio-updater" = {
       handler     = "index.handler"
-      runtime     = "nodejs20.x"
+      runtime     = var.lambda_node_runtime
       timeout     = 180
       memory_size = 256
       in_vpc      = true
@@ -198,10 +209,12 @@ locals {
     ]
   }
 
-  lambda_event_sources = {
-    "simulations-engine" = [
-      { event_source_arn = aws_sqs_queue.main.arn, batch_size = 1 }
-    ]
+  # Lambdas invoked **asynchronously** (EventBridge, SNS, etc.) opt in here to
+  # send failed invocations to a Dead Letter Queue. Synchronous invokers
+  # (API Gateway, Cognito triggers, SQS event source mappings) ignore this
+  # config and rely on their own retry / DLQ mechanisms.
+  lambda_async_dlq_arns = {
+    "portfolio-updater" = aws_sqs_queue.main_dlq.arn
   }
 
   api_integrations = {

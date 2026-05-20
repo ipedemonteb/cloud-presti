@@ -26,8 +26,9 @@ exports.handler = async (event) => {
             "Access-Control-Allow-Origin": "*"
         };
 
-        // --- ESCENARIO 1: BÚSQUEDA POR CUIT EXACTO (SEGURO) ---
-        // Al usar PK=CUIT y SK=FINTECH, aseguramos que solo pueda ver si ELLOS lo consultaron
+        // Single-cuit lookup uses the composite key (CUIT, FINTECH#<sub>) so a
+        // fintech can only retrieve cuits it has previously tracked — there is
+        // no way to probe another fintech's portfolio with this query shape.
         if (searchCuit) {
             const { Item } = await docClient.send(new GetCommand({
                 TableName: TABLE_NAME,
@@ -38,13 +39,12 @@ exports.handler = async (event) => {
             }));
 
             if (!Item) {
-                // Si no existe la relación, no tiene permiso o no existe el CUIT
+                // No relation row means either the cuit isn't tracked by this
+                // fintech or it doesn't exist at all — same response either way.
                 return { statusCode: 200, headers, body: JSON.stringify({ items: [], next_token: null }) };
             }
             trackedItems = [Item];
-        } 
-        // --- ESCENARIO 2: LISTADO PAGINADO ---
-        else {
+        } else {
             const queryOptions = {
                 TableName: TABLE_NAME,
                 IndexName: 'gsi1',
@@ -72,8 +72,9 @@ exports.handler = async (event) => {
             return { statusCode: 200, headers, body: JSON.stringify({ items: [], next_token: null }) };
         }
 
-        // --- OBTENER INFO DETALLADA DE LOS CUITS ---
-        // En el GSI, el PK original está en 'gsi1_sk'. En el GetCommand, está en 'pk'.
+        // GSI rows store the original PK in `gsi1_sk` (the relation row uses
+        // FINTECH#<sub>/CUIT#<cuit> on the GSI, inverted from the main table).
+        // For the single-cuit lookup path, the item already has `pk`.
         const cuitPks = trackedItems.map(item => item.gsi1_sk || item.pk);
 
         const keys = cuitPks.map(pk => ({
@@ -91,7 +92,6 @@ exports.handler = async (event) => {
         
         const infoItems = Responses[TABLE_NAME] || [];
 
-        // --- COMBINAR DATOS ---
         const finalItems = trackedItems.map(trackItem => {
             const pk = trackItem.gsi1_sk || trackItem.pk;
             const infoItem = infoItems.find(info => info.pk === pk);

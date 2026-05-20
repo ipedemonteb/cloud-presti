@@ -6,12 +6,10 @@ echo "Iniciando empaquetado de la Lambda de Simulaciones..."
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
-# 1. Crear directorio de build limpio
 BUILD_DIR="backend/simulations/engine-dist"
 rm -rf "${BUILD_DIR}"
 mkdir -p "${BUILD_DIR}"
 
-# 2. Instalar dependencias para Amazon Linux (manylinux) usando uv
 echo "Instalando dependencias (manylinux)..."
 uv pip install \
     --python-platform x86_64-manylinux_2_28 \
@@ -21,7 +19,6 @@ uv pip install \
     --no-cache \
     -r "${ROOT_DIR}/backend/simulations/engine/requirements.txt"
 
-# 3. Copiar el código de la Lambda y los artefactos
 echo "Copiando código fuente y modelo..."
 cp -r backend/simulations/engine/* "${BUILD_DIR}/"
 
@@ -32,7 +29,9 @@ cp engine/artifacts/scaler_params.json "${BUILD_DIR}/artifacts/"
 cp engine/artifacts/feature_columns.json "${BUILD_DIR}/artifacts/"
 cp engine/artifacts/feature_fill_values.json "${BUILD_DIR}/artifacts/"
 
-# 4. Limpieza para reducir tamaño
+# Trim build to fit under the 50 MB Lambda upload limit. Strips test dirs,
+# .dist-info metadata, the cpython-311/310 numpy artifacts we don't use, and
+# debug symbols from .so binaries.
 echo "Ejecutando limpieza para bajar de 50MB..."
 
 find "${BUILD_DIR}" -type d -name "tests"      -exec rm -rf {} + 2>/dev/null || true

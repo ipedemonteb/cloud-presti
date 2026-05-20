@@ -8,7 +8,6 @@ module "vpc" {
   }
 
   subnets_config = [
-    # AZ a
     {
       name              = "public-az-a"
       cidr_block        = var.public_subnet_cidrs[0]
@@ -20,7 +19,6 @@ module "vpc" {
       cidr_block        = var.private_subnet_cidrs[0]
       availability_zone = "${var.aws_region}a"
     },
-    # AZ b
     {
       name              = "public-az-b"
       cidr_block        = var.public_subnet_cidrs[1]
@@ -219,16 +217,27 @@ module "dynamodb_portfolio" {
   billing_mode = var.dynamodb_billing_mode
 }
 
-# --- Data sources ---
 
 # Pre-existing LabRole in AWS Academy (IAM roles cannot be created)
 data "aws_iam_role" "lab_role" {
   name = "LabRole"
 }
 
-# --- SQS ---
+
+resource "aws_sqs_queue" "main_dlq" {
+  name                      = "${var.stack_name}-simulations-queue-dlq"
+  message_retention_seconds = 1209600 # 14 days, the SQS maximum.
+}
 
 resource "aws_sqs_queue" "main" {
   name                       = "${var.stack_name}-simulations-queue"
   visibility_timeout_seconds = var.sqs_visibility_timeout_seconds
+
+  # After `sqs_max_receive_count` failed delivery attempts, SQS moves the
+  # message to the DLQ instead of dropping it. Lets us inspect what failed
+  # (which CUIT, which task_id, what timestamp) without losing the payload.
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.main_dlq.arn
+    maxReceiveCount     = var.sqs_max_receive_count
+  })
 }

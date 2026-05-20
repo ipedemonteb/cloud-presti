@@ -8,6 +8,7 @@ const TABLE_NAME = process.env.DYNAMODB_PORTFOLIO_TABLE;
 
 exports.handler = async (event) => {
     try {
+        console.warn("portfolio-updater is a MOCK — status transitions are randomized, no BCRA call is made");
         console.log("Starting portfolio updater cron");
 
         // 1. Scan for all INFO items

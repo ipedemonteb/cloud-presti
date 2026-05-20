@@ -1,5 +1,5 @@
 const { SQSClient, SendMessageCommand } = require('@aws-sdk/client-sqs');
-const { DynamoDBClient, PutItemCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBClient, TransactWriteItemsCommand } = require('@aws-sdk/client-dynamodb');
 const { v4: uuidv4 } = require('uuid');
 
 const sqsClient = new SQSClient({});
@@ -54,70 +54,74 @@ exports.handler = async (event) => {
                 return { statusCode: 401, headers, body: JSON.stringify({ error: "No se pudo obtener el sub del token" }) };
             }
 
-            await dynamoClient.send(new PutItemCommand({
-                TableName: DYNAMODB_USER_TABLE,
-                Item: {
-                    sub:  { S: sub },
-                    cuit: { S: cuit }
-                }
-            }));
-
-            // Monitoreo Pasivo (Portfolio)
-            if (DYNAMODB_PORTFOLIO_TABLE) {
-                try {
-                    // 1. Guardar o actualizar la info base del CUIT (sólo si no existe, o inicializarla)
-                    await dynamoClient.send(new UpdateItemCommand({
-                        TableName: DYNAMODB_PORTFOLIO_TABLE,
-                        Key: { pk: { S: `CUIT#${cuit}` }, sk: { S: 'INFO' } },
-                        UpdateExpression: "SET current_status = if_not_exists(current_status, :s), previous_status = if_not_exists(previous_status, :s), trend = if_not_exists(trend, :t), last_updated = if_not_exists(last_updated, :lu)",
-                        ExpressionAttributeValues: {
-                            ":s": { S: "1" }, // default status
-                            ":t": { S: "stable" },
-                            ":lu": { S: new Date().toISOString() }
-                        }
-                    }));
-                    
-                    // 2. Guardar la relación Fintech -> CUIT
-                    await dynamoClient.send(new PutItemCommand({
-                        TableName: DYNAMODB_PORTFOLIO_TABLE,
-                        Item: {
-                            pk:         { S: `CUIT#${cuit}` },
-                            sk:         { S: `FINTECH#${sub}` },
-                            gsi1_pk:    { S: `FINTECH#${sub}` },
-                            gsi1_sk:    { S: `CUIT#${cuit}` },
-                            tracked_at: { S: new Date().toISOString() }
-                        }
-                    }));
-                    console.log(`Saved CUIT ${cuit} to portfolio for fintech ${sub}`);
-                } catch (portfolioErr) {
-                    console.error("Error updating portfolio table:", portfolioErr);
-                    // No interrumpimos el flujo de la simulación por un error en portfolio
-                }
+            if (!DYNAMODB_TABLE || !DYNAMODB_USER_TABLE || !DYNAMODB_PORTFOLIO_TABLE) {
+                console.error("Required DynamoDB table env vars are not set");
+                return { statusCode: 500, headers, body: JSON.stringify({ error: "Configuración interna del servidor incompleta (DynamoDB)" }) };
             }
 
             const taskId = uuidv4();
             const timestamp = new Date().toISOString();
 
-            if (DYNAMODB_TABLE) {
-                try {
-                    await dynamoClient.send(new PutItemCommand({
-                        TableName: DYNAMODB_TABLE,
-                        Item: {
-                            sub:        { S: sub },
-                            sk:         { S: `CUIT#${cuit}#TASK#${taskId}` },
-                            task_id:    { S: taskId },
-                            cuit:       { S: cuit },
-                            status:     { S: "PROCESSING" },
-                            created_at: { S: timestamp }
+            // All four writes go in a single transaction so the request either
+            // persists everything (user-cuit relation + portfolio INFO seed +
+            // portfolio fintech-cuit relation + simulation record) or nothing.
+            // Avoids the previous race where one of the writes could succeed
+            // while another failed silently, leaving the data inconsistent.
+            try {
+                await dynamoClient.send(new TransactWriteItemsCommand({
+                    TransactItems: [
+                        {
+                            Put: {
+                                TableName: DYNAMODB_USER_TABLE,
+                                Item: {
+                                    sub:  { S: sub },
+                                    cuit: { S: cuit }
+                                }
+                            }
+                        },
+                        {
+                            Update: {
+                                TableName: DYNAMODB_PORTFOLIO_TABLE,
+                                Key: { pk: { S: `CUIT#${cuit}` }, sk: { S: 'INFO' } },
+                                UpdateExpression: "SET current_status = if_not_exists(current_status, :s), previous_status = if_not_exists(previous_status, :s), trend = if_not_exists(trend, :t), last_updated = if_not_exists(last_updated, :lu)",
+                                ExpressionAttributeValues: {
+                                    ":s":  { S: "1" },
+                                    ":t":  { S: "stable" },
+                                    ":lu": { S: timestamp }
+                                }
+                            }
+                        },
+                        {
+                            Put: {
+                                TableName: DYNAMODB_PORTFOLIO_TABLE,
+                                Item: {
+                                    pk:         { S: `CUIT#${cuit}` },
+                                    sk:         { S: `FINTECH#${sub}` },
+                                    gsi1_pk:    { S: `FINTECH#${sub}` },
+                                    gsi1_sk:    { S: `CUIT#${cuit}` },
+                                    tracked_at: { S: timestamp }
+                                }
+                            }
+                        },
+                        {
+                            Put: {
+                                TableName: DYNAMODB_TABLE,
+                                Item: {
+                                    sub:        { S: sub },
+                                    sk:         { S: `CUIT#${cuit}#TASK#${taskId}` },
+                                    task_id:    { S: taskId },
+                                    cuit:       { S: cuit },
+                                    status:     { S: "PROCESSING" },
+                                    created_at: { S: timestamp }
+                                }
+                            }
                         }
-                    }));
-                    console.log(`Record created in DynamoDB for task_id: ${taskId}`);
-                } catch (dbError) {
-                    console.error("Error writing to DynamoDB:", dbError);
-                    return { statusCode: 500, headers, body: JSON.stringify({ error: "Error interno al inicializar simulación" }) };
-                }
-            } else {
-                console.warn("DYNAMODB_TABLE_NAME is not defined.");
+                    ]
+                }));
+                console.log(`Transaction committed: user + portfolio + simulation rows for task_id ${taskId}`);
+            } catch (txError) {
+                console.error("DynamoDB transaction failed:", txError);
+                return { statusCode: 500, headers, body: JSON.stringify({ error: "Error interno al inicializar simulación" }) };
             }
 
             if (QUEUE_URL) {
@@ -158,7 +162,7 @@ exports.handler = async (event) => {
         return {
             statusCode: 500,
             headers: { "Access-Control-Allow-Origin": "*" },
-            body: JSON.stringify({ 
+            body: JSON.stringify({
                 error: "Error interno del servidor",
                 message: error.message,
                 stack: error.stack
